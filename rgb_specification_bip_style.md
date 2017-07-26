@@ -1,20 +1,20 @@
 <pre>
-	BIP: ?
-	Layer: Applications
-	Title: Colored Coin
-	Author: 
-	Discussions-To: 
-	Comments-Summary: 
-	Comments-URI: 
-	Status: Draft
-	Type: Process
-	Created: 2017-07-25
-	License: 
-	License-Code: 
-	Post-History: 
-	Requires: 
-	Replaces: 
-	Superseded-By: 
+BIP: ?
+Layer: Applications
+Title: Colored Coin
+Author: 
+Discussions-To: 
+Comments-Summary: 
+Comments-URI: 
+Status: Draft
+Type: Process
+Created: 2017-07-25
+License: 
+License-Code: 
+Post-History: 
+Requires: 
+Replaces: 
+Superseded-By: 
 </pre>
 
 ### Questions List
@@ -133,7 +133,7 @@ Olivia PubKey is defined in the contract.
 +-------------------------+---------------------------------+
 </pre>
 * Now also eve wants a share of that asset from Bob. First Bob send her the list of K's from which Eve can derive and validate the history of the asset and check if the contract's rule have been respected.If Bob's asset is valid, then she gives to Bob a new K, which will be used from bob to derive an address with the extended master public key of the issuer, and an address. Bob will construct a transaction like the following:
-* <pre>
+<pre>
 +-----------------------------------------------------------+
 |                         Tx Hash                           |
 +-------------------------+---------------------------------+
