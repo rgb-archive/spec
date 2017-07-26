@@ -27,19 +27,17 @@ TODO: how difficult is to bruteforce every k? <br>
 TODO: Which proof Alice show to Bob? <br>
 TODO: atomic swap? how? hash time-locked contract ? <br>
 
---
-
 PROBLEMS: Asset is in satoshi / Fee is almost recognizable due to contract / change probably most of the time bigger than asset <br>
 PROBLEMS: Input BTC history is different from Asset history <br>
 PROBLEMS: Multi asset ? shouldn't be a problem if the asset output position is derived by the K, but what about the change? 
 
-##Abstract
+## Abstract
 
-##Motivation
+## Motivation
 
-##Specification
+## Specification
 
-###Data structures
+### Data structures
 The system is based on 2 type of transactions called issuing and transfer. The first one can be considered a genesis transaction used by the issuer to emit an asset to another party. The structure is the following:
 
 <pre>
@@ -148,8 +146,8 @@ Olivia PubKey is defined in the contract.
 </pre>
 * Now Eve, wants to redeem his asset by sending it to the issuer. She gives to the issuer the list of K's and the asset and by levegering the exchange with an atomic transaction, the issuer will first verify the validity of the asset history with respect to the Ks and the contract. He will then provide the reediming.
 
-##Rationale
+## Rationale
 
-##Compatibility
+## Compatibility
 
-##Reference implementation
+## Reference implementation
