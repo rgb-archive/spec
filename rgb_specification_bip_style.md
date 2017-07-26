@@ -19,17 +19,19 @@
 
 ### Questions List
 
-TODO: how will the engine work? what about the scripting language? <br>
+TODO: what about the scripting language? how will the engine work? <br>
 TODO: dust limit in case of on-band transactions? <br>
 TODO: bip32 says that hardned keys can be derived from thr parent PRIVATE KEY not public. What about it? <br>
 TODO: how can the index be derived from the k? otherwise the colored asset can be the one always after/before the `Issuer_Fees` output (this way the confidentiality is reduced). <br>
 TODO: how difficult is to bruteforce every k? <br>
 TODO: Which proof Alice show to Bob? <br>
-TODO: atomic swap? how? <br>
+TODO: atomic swap? how? hash time-locked contract ? <br>
 
 --
 
-PROBLEMS: Asset is in satoshi / Fee is almost recognizable due to contract / 
+PROBLEMS: Asset is in satoshi / Fee is almost recognizable due to contract / change probably most of the time bigger than asset <br>
+PROBLEMS: Input BTC history is different from Asset history <br>
+PROBLEMS: Multi asset ? shouldn't be a problem if the asset output position is derived by the K, but what about the change? 
 
 ##Abstract
 
