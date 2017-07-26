@@ -20,7 +20,7 @@
 ### Questions List
 
 TODO: what about the scripting language? how will the engine work? <br>
-TODO: dust limit in case of on-band transactions? <br>
+TODO: dust limit in case of on-chain transactions? <br>
 TODO: bip32 says that hardned keys can be derived from thr parent PRIVATE KEY not public. What about it? <br>
 TODO: how can the index be derived from the k? otherwise the colored asset can be the one always after/before the `Issuer_Fees` output (this way the confidentiality is reduced). <br>
 TODO: how difficult is to bruteforce every k? <br>
