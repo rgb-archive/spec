@@ -146,6 +146,8 @@ Olivia PubKey is defined in the contract.
 </pre>
 * Now Eve, wants to redeem his asset by sending it to the issuer. She gives to the issuer the list of K's and the asset and by levegering the exchange with an atomic transaction, the issuer will first verify the validity of the asset history with respect to the Ks and the contract. He will then provide the reediming.
 
+### Confidentiality consideration
+
 ## Rationale
 
 ## Compatibility
