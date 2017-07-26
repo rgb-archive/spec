@@ -1,7 +1,7 @@
 <pre>
 BIP: ?
 Layer: Applications
-Title: Colored Coin
+Title: RGB
 Author: 
 Discussions-To: 
 Comments-Summary: 
