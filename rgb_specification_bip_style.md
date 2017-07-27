@@ -87,7 +87,7 @@ When a issuer emit a share of an asset, he must also release a public contract o
 		"signature": String,
 		"master_pubkey" : String
 	},
-	dust_limit: Integer,
+	"dust_limit": Integer,
 	"divisibility": Float,
 	"redeeming" : Array of possible reediming action,
 	"rules": < Rule engine code describing the asset behavior >
