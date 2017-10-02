@@ -34,9 +34,9 @@ The system is based on 2 type of transactions called issuing and transfer. The f
 +---------------+----------------------------------+
 |   Input       |  Output                          |
 +---------------+----------------------------------+               
-| • Color_Input | • Color_Output                   |
-|               | • BTC_Change                     |
-|               | • OP_RETURN pointing to contract |
+| • Color_Input | • P2PKH Color_Output             |
+|               | • P2PKH BTC_Change               |
+|               | • OP_RETURN Contract_Hash        |
 +---------------+----------------------------------+
 </pre>
 
@@ -57,9 +57,9 @@ The second type of transactions is used to exchange a specific asset between 2 o
 +---------------+-----------------------+
 |   Input       |  Output               |
 +---------------+-----------------------+              
-| • Color_Input | • Color_Output        |
-| • BTC_Input   | • Issuer_Fees         |
-|               | • Change_Output       |
+| • Color_Input | • P2PKH Color_Output  |
+| • BTC_Input   | • P2PKH Issuer_Fees   |
+|               | • P2PKH Change_Output |
 |               | • OP_RETURN Color_Def |
 +---------------+-----------------------+
 </pre>
@@ -114,6 +114,7 @@ To avoid transaction tracking based on the amount of the `Issuer_Fee` this value
 When a issuer emit a share of an asset, he must also release a public contract with the following structure: <br>
 <pre>
 {
+	"version": Integer  # RGB version
 	"title": String,
 	"issuer": {
 		"pubkey": String,
