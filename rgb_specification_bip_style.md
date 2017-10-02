@@ -2,34 +2,21 @@
 BIP: ?
 Layer: Applications
 Title: RGB
-Author: 
-Discussions-To: 
-Comments-Summary: 
-Comments-URI: 
+Author:
+Discussions-To:
+Comments-Summary:
+Comments-URI:
 Status: Draft
 Type: Process
 Created: 2017-07-25
-License: 
-License-Code: 
-Post-History: 
-Requires: 
-Replaces: 
-Superseded-By: 
+License:
+License-Code:
+Post-History:
+Requires:
+Replaces:
+Superseded-By:
 </pre>
 
-### Questions List
-
-TODO: what about the scripting language? how will the engine work? ???  <br> 
-TODO: dust limit in case of on-chain transactions? OK enforce in contract <br>
-TODO: bip32 says that hardned keys can be derived from thr parent PRIVATE KEY not public. What about it? public key <br>
-TODO: how can the index be derived from the k? otherwise the colored asset can be the one always after/before the `Issuer_Fees` output (this way the confidentiality is reduced). nsequence byte to define the output index of color/change <br>
-TODO: how difficult is to bruteforce every k?  we use 2 derivation <br>
-TODO: Which proof Alice show to Bob?  ??? <br> 
-TODO: atomic swap? how? hash time-locked contract ? ? <br>
-
-PROBLEMS: Asset is in satoshi / Fee is almost recognizable due to contract / change probably most of the time bigger than asset -  :'( <br>
-PROBLEMS: Input BTC history is different from Asset history - :'( <br>
-PROBLEMS: Multi asset ? shouldn't be a problem if the asset output position is derived by the K, but what about the change? nsequence <br>
 
 ## Abstract
 
@@ -38,6 +25,7 @@ PROBLEMS: Multi asset ? shouldn't be a problem if the asset output position is d
 ## Specification
 
 ### Data structures
+
 The system is based on 2 type of transactions called issuing and transfer. The first, also called genesis transaction, is used by the issuer to emit an asset to another party. The structure is the following:
 
 <pre>
@@ -47,38 +35,83 @@ The system is based on 2 type of transactions called issuing and transfer. The f
 |   Input       |  Output                          |
 +---------------+----------------------------------+               
 | • Color_Input | • Color_Output                   |
+|               | • BTC_Change                     |
 |               | • OP_RETURN pointing to contract |
 +---------------+----------------------------------+
 </pre>
 
-* The `Color_Input` address is contained as a field in the contract followed by a digital signature. 
-* The `Color_Output` address is given by the payee to the issuer. 
+* The `Color_Input` address is contained as a field in the contract followed by a digital signature.
+* The `Color_Output` address is given by the payee to the issuer. Contain the total issued asset which is the same number as the satoshi value of the output.
+* `BTC_Change` is the bitcoin change
 * The `OP_RETURN` contains an indentifier of the contract which can be issuer in different ways:
-	* `hash256` pointing to a file in a IPFS distributed network
+	* `sha256` of the contract which content is distributed with a yet-to-specify mechanism
+	* `IPFS-hash` pointing to a file in a IPFS distributed network
 	* < link_id:hash256 > where `link_id` is the identifier of a pastebin/gist public file and `hash256` is the content hash
 
-Instead, the second type of transactions is used to exchange a specific asset between 2 parties. The structure is the following:
+
+The second type of transactions is used to exchange a specific asset between 2 or more parties. The base structure is the following:
 
 <pre>
-+---------------------------------+
-|            Tx Hash              |
-+---------------+-----------------+
-|   Input       |  Output         |
-+---------------+-----------------+              
-| • Color_Input | • Color_Output  |
-| • BTC_Input   | • Issuer_Fees   |
-|               | • Change_Output |
-+---------------+-----------------+
++---------------------------------------+
+|            Tx Hash                    |
++---------------+-----------------------+
+|   Input       |  Output               |
++---------------+-----------------------+              
+| • Color_Input | • Color_Output        |
+| • BTC_Input   | • Issuer_Fees         |
+|               | • Change_Output       |
+|               | • OP_RETURN Color_Def |
++---------------+-----------------------+
 </pre>
 
-* `Color_Input` is a valid colored input (will explain later how a user can be user of the validity of a colored input).
-* `BTC_Input` contains an amount of BTC to pay asset's fee to the issuer.
-* `Color_Output` contains the amount of asset exchanged between the two parties.
-* `Issuer_Fees` contains the amount of BTC w.r.t the contract released by the issuer for that specific asset.
-* `Change_Output` is a partially colored output which contains the sum of changes from the `Color_Input` and `BTC_Input`.
+* Inputs
+	* `Color_Input` is a valid colored input (will explain later how a user can be user of the validity of a colored input). There could be another colored input
+	* `BTC_Input` contains an amount of BTC to pay asset's fee to the issuer. There could be any number of btc input.
+* Outputs (the order is irrelevant)
+	* `Color_Output` contains the amount of asset exchanged between the two parties. (the satoshi amount is mapped 1:1 to the number of asset shares). There could other 4 colored output
+	* `Issuer_Fees` contains the amount of BTC required by the contract released by the issuer for that specific asset.
+	* `Change_Output` is a partially colored output which mixes bitcoin and number of asset shares
+	* `Color_Def` contains 32 encrypted byte defining the transaction.
+
+### Process
+
+Everytime before an asset exchange, the payee has to give the payer an address where he want to get paid, an amount and a tagging value.
+The tagging value is used to tag the transaction in a way only the partecipants of the trade know the details of the transaction (such the asset type of the transaction)
+
+Supposing we have an issuance of an asset and two transaction
+
+```
+Issuance -> Transaction A to Alice with tagging value J -> Transaction B to Bob with tagging value K
+```
+
+Bob give to alice a random tagging value `K` of twelve bytes.
+Alice take the tagging value `K` and split in 3 chunk of 4 bytes `K1`, `K2`, `K3`
+Alice take the xpub of the issuer and derive the `Issuer_Fee` address as `xpub/J1/J2/J3/K1/K2/K3`
+Alice put in the `Color_Def` his value `J` encrypted with the value `K` (for example xor-ed).
+When Bob receive the transaction he decrypt the `Color_Def` (inside the OP_RETURN) with `K` and find `J`. Bob then retrieve transaction A where decrypt the `Color_Def` with `J` to find the previous tagging value, in this case the previous is the issuing transaction otherwise he repeat the step until he found the issuing transaction. Now Bob can verify his transaction and all the chain to the issuance are adherent to the protocol.
+
+The process of retrieving transaction to verify the issuer chain become soon too expensive on light client, the best way to achieve this is probably client side filtering [reference to neutrino], while this solution is not in place an "electrum server" like solution could be implemented (which is suboptimal for privacy)
+
+To be more specific the `Color_Def` is an OP_RETURN output of exactly 32 bytes (we choose a fixed size to avoid leaking privacy based on the field size, moreover 32 is a common size because it's the size of sha256)
+
+position | size | description
+--- | --- | ---
+0-1 | 1 byte | Position of the first colored input (from 0 to 254)
+1-13 | 12 byte | Tagging value of the previous output of the first colored input
+13-14 | 1 byte | Pposition of the second colored input, if any, otherwise 0xff
+14-26 | 12 byte | the tagging value of the previous output of the second colored input , otherwise 0xffffffffffffffffffffffff
+26-27 | 1 byte | define the position of the first colored ouptut (which is partially colored)
+27-32 | 1 byte each | define the position of the second, third, 4th, 5th and 6th colored ouptut if any or 0xff
+
+Tx with more than two colored input or more than 6 colored output are not allowed (one must build more than one tx to merge more than two inputs)
+
+Since one could easily mark the colored inputs/outputs if the input amount is the sum of two outputs amount, one output is partially colored, meaning the number of asset shares is less than the number of satoshi of this output. The exact number of asset share could be computed as `color_value(BTC_Input)-Color_output` since they are exact value. This comes handy because the payer could use this to get back the bitcoin change without creating another output.
+
+To avoid transaction tracking based on the amount of the `Issuer_Fee` this value must be randomized in the less signifcant part, for example based on `K` and `J`
 
 ### Contract
-When a issuer emit a share of an asset, he must also release a public contract of the following structure: <br>
+
+When a issuer emit a share of an asset, he must also release a public contract with the following structure: <br>
 <pre>
 {
 	"title": String,
@@ -90,80 +123,20 @@ When a issuer emit a share of an asset, he must also release a public contract o
 	"dust_limit": Integer,
 	"divisibility": Float,
 	"redeeming" : Array of possible reediming action,
-	"rules": < Rule engine code describing the asset behavior >
+	"rules": < Rule engine code describing the asset behavior >  ## RULES TO BE DEFINED
 }
 </pre>
 
-Each user will be able to check if the colored transaction he is going to pay for, obeys to the issuer's contract conditions. <br>
+Each user will be able to check if the colored transaction he is going to pay for, obeys to the issuer's contract conditions.
+
 In order to increase the confidentiality against a possibile data mining attack, the fee given to the issuer are based on the K exchanged between the 2 user. Without knowing the K its impossible to deduct which of the 3 or more output is the one containing the fee and tagging the color of the transaction.
 
-### Validation
-Everytime before an asset exchange, the payee has to give to the payer 2 addresses: the first will contain the amount of colored asset meanwhile the second will be used to send the fee for the issuer as specified in the contract. The latter is also used as a unique tag to specify the ID/Type of asset. <br>
-The second address is generated with 2 `K` keys derivation from, the first time, the public key (described in the contract) of the issuer (which can be found in the contract) the other times from the last generated pubkey.<br>
-The list of `K` is passed from user to user. <br>
-The  purpouse of the list is dual:
+Issuer is not collecting fees of an entire path until someone redeem the asset, in that moment the issuer discover all the tagging values and can collect the fees. To overcome this problem issuer could define some rules to incentivize redeeming after N transactions (this would also allow to keep path not too long).
 
-* everyone who has the list of Ks is able to recontruct the history of the asset and validate if the payer has a colored output which come from an asset emitted by the issuer.
-* everyone is able to identify the amount of colored coin in the `Change_Output` which is the difference between `Color_Input` and `Color_Output`.
-* a user can generate from the last pubkey the following pubkey.
+### Known issue
 
-In order to find which is the `Color_Output` and which is `Change_Output`, the output index of the `Color_Output` can be computed with the K relative to that transaction `mod` a number which is described in the nsequence left-most 3 byte.
-Every byte contains two 4 bit number. The first par contains the number to indentify the index of the `Change_Output` meanwhile the second the `Color_Output`.
+The dust limit of the amount prevent sending low value of shares. One could consider to send 1000 shares as minimum but this could change in the future, a split/join mechanism which does not require reissuance of all tokens should be defined to properly handle dust limit.
 
-Then, in order to differenciate the total of colored asset from the BTC amount, we can just subtract from the `Change_Output` the difference between the `Color_Input` and the `Color_Output`. 
-
-### Process
-The following schema describe how the protocol works:
-
-* Olivia (the issuer) publicly release the contract for an asset.
-<pre>
-GOLD - Olivia - Contract
-</pre>
-* Alice gives to the issuer an address which is used by the issuer to generate a issuing/genesis transaction.
-<pre>
-+-----------------------------------------------------+
-|                     Tx Hash                         |
-+-------------------------+---------------------------+
-|   Input                 |  Output                   |
-+-------------------------+---------------------------+
-| • Olivia PubKey (Asset) | • Alice PubKey (Asset)    |
-+-------------------------+---------------------------+
-</pre>
-Olivia PubKey is defined in the contract.
-* Now Bob wants a share of that asset from Alice. Alice gives Bob the list of Ks, the genesis transaction and the contract ( the first time the list of Ks will be empty). Bob will generate 2 `K` keys derivation, with which will create an address, and a another address from his own extended public key. After sending those 2 address to Alice, she will create a transaction as the following:
-<pre>
-+-----------------------------------------------------------+
-|                     Tx Hash                               |
-+-------------------------+---------------------------------+
-|   Input                 |  Output                         |
-+-------------------------+---------------------------------+
-| • Alice PubKey (Asset)  | • Bob PubKey (Asset)            |
-| • Alice BTC (Fees)      | • Issuer Fees (Bob's k derived) |
-|                         | • Change (Partial colored)      |
-+-------------------------+---------------------------------+
-</pre>
-* Now also eve wants a share of that asset from Bob. First Bob send her the list of K's from which Eve can derive and validate the history of the asset and check if the contract's rule have been respected.If Bob's asset is valid, then she gives to Bob two new addresses,one will be used to send the fee to the issuer as per contract, the other to send to Eve the asse. Bob will construct a transaction like the following:
-<pre>
-+-----------------------------------------------------------+
-|                      Tx Hash                              |
-+-------------------------+---------------------------------+
-|   Input                 |  Output                         |
-+-------------------------+---------------------------------+
-| • Bob PubKey (Asset)    | • Eve PubKey (Asset)            |
-| • Bob BTC (Fees)        | • Issuer Fees (Eve's k derived) |
-|                         | • Change (Partial colored)      |
-+-------------------------+---------------------------------+
-</pre>
-* Now Eve, wants to redeem his asset by sending it to the issuer. She gives to the issuer the list of K's and the asset and by levegering the exchange with an atomic transaction, the issuer will first verify the validity of the asset history with respect to the Ks and the contract. He will then provide the respecting redeeming action as per contract.
-
-### Confidentiality consideration
-
-Confidentiality is archived by:
-* Randomly generating an amount of fees based on the randomly generated K decrease the possibility of information disclosure by data mining based on the contract description.
-* Amount disclosure is hidden between N outputs, with N > 3. A user can increase his privacy by:
-	* Sending an asset to himself
-	* Increasing the number of input and output
-* The issuer can't follow the path of his asset until someone makes a redeem.
 ## Rationale
 
 ## Compatibility
