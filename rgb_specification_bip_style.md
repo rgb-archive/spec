@@ -96,12 +96,13 @@ To be more specific the `Color_Def` is an OP_RETURN output of exactly 32 bytes (
 
 position | size | description
 --- | --- | ---
-0-1 | 1 byte | Position of the first colored input (from 0 to 254)
-1-13 | 12 byte | Tagging value of the previous output of the first colored input
-13-14 | 1 byte | Pposition of the second colored input, if any, otherwise 0xff
-14-26 | 12 byte | the tagging value of the previous output of the second colored input , otherwise 0xffffffffffffffffffffffff
-26-27 | 1 byte | define the position of the first colored ouptut (which is partially colored)
-27-32 | 1 byte each | define the position of the second, third, 4th, 5th and 6th colored ouptut if any or 0xff
+0-1 | 1 byte | RGB Version
+1-2 | 1 byte | Position of the first colored input (from 0 to 254)
+2-14 | 12 byte | Tagging value of the previous output of the first colored input
+14-15 | 1 byte | Position of the second colored input, if any, otherwise 0xff
+15-27 | 12 byte | the tagging value of the previous output of the second colored input , otherwise 0xffffffffffffffffffffffff
+27-28 | 1 byte | define the position of the first colored ouptut (which is partially colored)
+29-32 | 1 byte each | define the position of the second, third, 4th and 5th colored ouptut if any or 0xff
 
 Tx with more than two colored input or more than 6 colored output are not allowed (one must build more than one tx to merge more than two inputs)
 
