@@ -64,10 +64,10 @@ The system is based on 2 types of transactions called issuing and transfer. The 
 +---------------+----------------------------------+
 </pre>
 
-* The `Color_Input` address is contained as a field in the [contract](###contract) followed by a digital signature.
+* The `Color_Input` address is contained as a field in the [contract](#contract) followed by a digital signature.
 * The `Color_Output` address is given by the payee to the issuer. It contains the total issued assets which corresponds to the number of satoshis of the output.
 * `BTC_Change` is the bitcoin change
-* The `OP_RETURN` contains an indentifier of the [contract](###contract). This can be issued in different ways:
+* The `OP_RETURN` contains an indentifier of the [contract](#contract). This can be issued in different ways:
 	* `sha256` of the contract whose content is distributed with a yet-to-specify mechanism,
 	* `IPFS-hash` pointing to a file in an IPFS distributed network,
 	* < link_id:hash256 > where `link_id` is the identifier of a pastebin/gist public file and `hash256` is the content hash.
@@ -89,11 +89,11 @@ The second type of transactions is the transfer trasaction. It is used to exchan
 </pre>
 
 * Inputs
-	* `Color_Input` is a valid colored input (we will explain [later](###process) how a user can verify the validity of a colored input). There could be another colored input
+	* `Color_Input` is a valid colored input (we will explain [later](#process) how a user can verify the validity of a colored input). There could be another colored input
 	* `BTC_Input` contains an amount of BTC to pay an asset-transfer fee to the issuer through the `Issuer_Fees` output. There could be any number of bitcoins in input.
 * Outputs (the order is irrelevant)
 	* `Color_Output` contains the amount of asset exchanged between the two parties (the satoshi amount is mapped 1:1 to the number of asset shares). There can be up to 4 additional colored outputs,
-	* `Issuer_Fees` contains the amount of BTC as required within the [contract](###contract) released by the issuer for that specific asset.
+	* `Issuer_Fees` contains the amount of BTC as required within the [contract](#contract) released by the issuer for that specific asset.
 	* `Change_Output` is a partially colored output which mixes bitcoin and number of asset shares
 	* `Color_Def` contains 32 Bytes encrypted. These Bytes define the transaction.
 
@@ -116,7 +116,7 @@ Issuance -> Transaction A to Alice with tagging value J -> Transaction B to Bob 
 6. Bob then retrieves the previous transaction A where decrypts the `Color_Def` output with `J` to find the previous tagging value, in this case the previous is the issuing transaction otherwise he repeats the step until he finds the issuing transaction. 
 7. Now Bob can verify his transaction and all the chain to the issuance are adherent to the protocol.
 
-The process of retrieving transactions to verify the chain all the way up to the issuing transaction becomes very soon too expensive on light clients. The best way to achieve this is probably client side filtering [reference to neutrino], but while this solution is not operational an "electrum server"-like solution could be implemented (which is suboptimal for privacy).
+The process of retrieving transactions to verify the chain all the way up to the issuing transaction becomes very soon too expensive on light clients. The best way to achieve this is probably [client side filtering](https://github.com/lightninglabs/neutrino), but while this solution is not operational an "electrum server"-like solution could be implemented (which is suboptimal for privacy).
 
 To be more specific the `Color_Def` is an OP_RETURN output of exactly 32 bytes (we choose a fixed size to avoid leaking privacy based on the field size, moreover 32 is a common size because it's the size of sha256)
 
