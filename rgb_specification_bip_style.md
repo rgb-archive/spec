@@ -22,6 +22,30 @@ Superseded-By:
 
 ## Motivation
 
+The RGB protocol aims to develop a better way to exchange generic assets by making confidentiality and interoperability with the existing Bitcoin ecosystem a priority.
+
+### Confidentiality
+While a centralized and trust-based solution for digital assets encumbers its users to privacy concerns, and the issuer to extreme regulatory burden (KYC, AML, privacy laws, asset-specific regulations and authorizations, ecc.), some of these costs could be lowered in the framework of a technical (total or partial) impossibility, for the issuer, to view, track, prevent, censor or revert asset transactions. This feature would not just be an advantage for some kind of users in terms of privacy, but also a responsibility relief for the asset issuer itself. Of course, this advantage would be of paramount importance for informal, unregulated or borderline issuers, but also for regulated legal entities the implications could be of interest, even if for them it would come at cost of possible increases of reputational and regulatory risk.
+
+In order to archive the confidentiality levels needed we developed a unique way for tagging the colored asset such that RGB transactions are indistinguishable from normal transactions for any party running forensic analytics on Bitcoin blockchain or on its network, thus making the RGB protocol different to other existing colored coin protocols.
+This protocol focuses on the asset history confidentiality. It differs from existing colored coin protocols in that it exploits the mere presence of an output address to identify a colored transaction and verify its integrity, rather than using order, padding order or any other version based on the index position of the outputs. The key to achieve the desired level of privacy is that the colored transaction can’t be decoded by anyone else except by the two parties involved in the transaction.
+
+
+### Interoperability
+While a centralized and proprietary solution for digital assets is difficult to push and needs to be marketed, an open source de-facto standard could be leveraged to lower friction to adoption. If a public blockchain-based system reached mainstream adoption due to its inner value proposition (native asset transfer), then also generic digital assets could be issued on the same platform, leveraging wallets, light clients, markets, libraries, block explorers, APIs, regulatory framework, secure hardware, user habits, ecc. The fewer the customizations necessary, the more frictionless the process. This advantage comes at the typical cost related with open ecosystems: difficult to lock-in users.
+
+### Auditability
+While a centralized and trust-based solution for digital assets would allow the issuer to modify the ledger in every possible way, inflating the supply, changing the distribution, blacklisting amounts and users, changing the transaction history, blockchain technology could be used (given certain condition) to provide solid proofs of correct, fair and deterministic behaviour. The amount of issued assets, the reserve, the immutability of the history of the ledger, could be proved cryptographically and independently audited leveraging blockchain technologies in a correct way. While it is still unclear if these auditability properties could represent a strong value proposition toward final users (at least in the case of a regulated business, where social, reputational and legal guarantees of fairness are usually valued more than technological ones), they could be interesting for regulators.
+
+### Programmability
+The RGB protocol will have its own scripting language giving the possibility to the asset issuers to create functions to describe the behavior against which the token transfers will have to adhere, and it will not be Turing complete, so as to avoid output unpredictability and undefined code behaviors.
+
+In conjunction with the scripting language, there is also a validation system which checks if the asset history is valid against the rules described in the contract script. 
+Finally the issuer will attach a human readable contract to each and every RGB colored coin. Such note will make it explicit what the asset bearer will be entitled with when redeeming the asset from the issuer. 
+This contract will be digitally signed by the issuer, timestamped and committed to the issuing transaction and it will be passed along by every user to the next and it will be stored – together with the necessary proofs, the digital signature and the timestamp proof – by every user.
+
+The RGB scripting language will be versioned and its first version will grant the validation rules to pass along the digital assets between users on the secondary market. The subsequent versions not only they will grant that the digital asset has always been transferred correctly by all users in each and every transaction, but also that the transaction respected a set of more complex conditions granting the ultimate redeemability of the asset. Examples of such rules could be a fee proportional to the amount of asset being transferred, or the block height, to be attached in each transaction and destined to the asset issuer in order for the asset to be finally redeemable. This conservative approach will grant safety and usability of the protocol for transferring the assets from day one, while additional features needing additional testing and validation will be easily introduced without breaking backward compatibility.
+
 ## Specification
 
 ### Data structures
@@ -40,8 +64,8 @@ The system is based on 2 type of transactions called issuing and transfer. The f
 +---------------+----------------------------------+
 </pre>
 
-* The `Color_Input` address is contained as a field in the contract followed by a digital signature.
-* The `Color_Output` address is given by the payee to the issuer. Contain the total issued asset which is the same number as the satoshi value of the output.
+* The `Color_Input` address is contained as a field in the Contract followed by a digital signature.
+* The `Color_Output` address is given by the payee to the issuer. It contains the total issued asset which is the same number as the satoshi value of the output.
 * `BTC_Change` is the bitcoin change
 * The `OP_RETURN` contains an indentifier of the contract which can be issuer in different ways:
 	* `sha256` of the contract which content is distributed with a yet-to-specify mechanism
@@ -49,7 +73,7 @@ The system is based on 2 type of transactions called issuing and transfer. The f
 	* < link_id:hash256 > where `link_id` is the identifier of a pastebin/gist public file and `hash256` is the content hash
 
 
-The second type of transactions is used to exchange a specific asset between 2 or more parties. The base structure is the following:
+The second type of transactions is the transfer trasaction. It is used to exchange a specific asset between 2 or more parties. The base structure is the following:
 
 <pre>
 +---------------------------------------+
@@ -75,22 +99,22 @@ The second type of transactions is used to exchange a specific asset between 2 o
 
 ### Process
 
-Everytime before an asset exchange, the payee has to give the payer an address where he want to get paid, an amount and a tagging value.
-The tagging value is used to tag the transaction in a way only the partecipants of the trade know the details of the transaction (such the asset type of the transaction)
+Every time before an asset exchange, the payee has to give the payer an address where he wants to be paid, an amount and a tagging value.
+The tagging value is used to tag the transaction in a way such that only the partecipants of the trade know the details of the transaction (such the asset type of the transaction)
 
-Supposing we have an issuance of an asset and two transaction
+Supposing we have an issuance of an asset and two transactions
 
 ```
 Issuance -> Transaction A to Alice with tagging value J -> Transaction B to Bob with tagging value K
 ```
 
-Bob give to alice a random tagging value `K` of twelve bytes.
-Alice take the tagging value `K` and split in 3 chunk of 4 bytes `K1`, `K2`, `K3`
-Alice take the xpub of the issuer and derive the `Issuer_Fee` address as `xpub/J1/J2/J3/K1/K2/K3`
-Alice put in the `Color_Def` his value `J` encrypted with the value `K` (for example xor-ed).
-When Bob receive the transaction he decrypt the `Color_Def` (inside the OP_RETURN) with `K` and find `J`. Bob then retrieve transaction A where decrypt the `Color_Def` with `J` to find the previous tagging value, in this case the previous is the issuing transaction otherwise he repeat the step until he found the issuing transaction. Now Bob can verify his transaction and all the chain to the issuance are adherent to the protocol.
+Bob gives to Alice a random tagging value `K` of twelve bytes.
+Alice takes the tagging value `K` and splits in 3 chunks of 4 bytes `K1`, `K2`, `K3`
+Alice takes the xpub of the issuer and derives the `Issuer_Fee` address as `xpub/J1/J2/J3/K1/K2/K3`
+Alice puts her value `J` encrypted with the value `K` in the `Color_Def` (for example XOR-ed).
+When Bob receives the transaction he decrypts the `Color_Def` (inside the OP_RETURN) with `K` and find `J`. Bob then retrieves transaction A where decrypt the `Color_Def` with `J` to find the previous tagging value, in this case the previous is the issuing transaction otherwise he repeats the step until he finds the issuing transaction. Now Bob can verify his transaction and all the chain to the issuance are adherent to the protocol.
 
-The process of retrieving transaction to verify the issuer chain become soon too expensive on light client, the best way to achieve this is probably client side filtering [reference to neutrino], while this solution is not in place an "electrum server" like solution could be implemented (which is suboptimal for privacy)
+The process of retrieving transaction to verify the issuer chain become soon too expensive on light client, the best way to achieve this is probably client side filtering [reference to neutrino], while this solution is not in place an "electrum server"-like solution could be implemented (which is suboptimal for privacy).
 
 To be more specific the `Color_Def` is an OP_RETURN output of exactly 32 bytes (we choose a fixed size to avoid leaking privacy based on the field size, moreover 32 is a common size because it's the size of sha256)
 
@@ -112,7 +136,7 @@ To avoid transaction tracking based on the amount of the `Issuer_Fee` this value
 
 ### Contract
 
-When a issuer emit a share of an asset, he must also release a public contract with the following structure: <br>
+When a issuer emits a share of an asset, he must also release a public contract with the following structure: <br>
 <pre>
 {
 	"version": Integer  # RGB version
@@ -131,9 +155,9 @@ When a issuer emit a share of an asset, he must also release a public contract w
 
 Each user will be able to check if the colored transaction he is going to pay for, obeys to the issuer's contract conditions.
 
-In order to increase the confidentiality against a possibile data mining attack, the fee given to the issuer are based on the K exchanged between the 2 user. Without knowing the K its impossible to deduct which of the 3 or more output is the one containing the fee and tagging the color of the transaction.
+In order to increase the confidentiality against a possibile data mining attack, the fee given to the issuer are based on the K exchanged between the 2 user. Without knowing the K its impossible to infer which of the 3 (or more) outputs is the one containing the fee and tagging the color of the transaction.
 
-Issuer is not collecting fees of an entire path until someone redeem the asset, in that moment the issuer discover all the tagging values and can collect the fees. To overcome this problem issuer could define some rules to incentivize redeeming after N transactions (this would also allow to keep path not too long).
+Issuer is not collecting fees of an entire path until someone redeems the asset, in that moment the issuer discover all the tagging values and can collect the fees. To overcome this problem issuer could define some rules to incentivize redeeming after N transactions (this would also allow to keep path not too long).
 
 ### Known issue
 
@@ -144,3 +168,27 @@ The dust limit of the amount prevent sending low value of shares. One could cons
 ## Compatibility
 
 ## Reference implementation
+
+## Future Developments and Improvements
+
+### Lightning Network integration for Decentralized Atomic Swaps
+Of primary concern is out of the box integration with Lightning Network.
+In fact, Lightning Network offers several benefits, such as the possibility to transfer funds even when the network is congested, increased privacy by avoiding to publish the whole history of the asset and more economic and faster transaction, with fees and confirmation time near to null. 
+Not only this but also Lightning Network could be heavily exploited for the development of a Decentralized Exchange, thus giving the possibility to RGB users to transfer generic assets in a safer and more confidential environment.  
+
+By levegering the Lightning Network, we could get rid of counterparty risk – through commit-or-refund schema – and of bureaucratic procedures – such as KYC or AML, which would weaken users confidentiality. Instead everything would exploit off-chain transactions, in a peer-to-peer decentralized environment.
+
+One of the biggest and most underrated problems of the existing exchange platforms is that fact that users need to trust their counterparty (exchange operators), giving them full control of their own goods. Counterparty risks, even when dealing with generally reliable and trusted parties, have always to be taken into consideration since casualties are always behind the door. 
+
+Lightning Network indirectly brings others important features, improving both security, censorship resistance and privacy. In fact, Lightning transactions are based on commit-or-refund schema hence they are atomic by default, meaning that either the exchange of funds is executed or you are refunded with your money back. There is no way for a counterparty to either steal your money or even block it for an undefined amount of time.
+
+The objective of the next RGB protocol improvement is to:
+* on one hand take care of the opening and management of a lightning channel with a specific asset, while giving the user full control over the configuration of the exchange rates he is willing to offer,
+* on the other hand leverage the route finding algorithm to seek the best exchange rate to perform the asset swap.
+
+This way users owning payment channels containing different assets will be able to atomically swap portions of their channels according to the exchange rate they initially agree to.
+
+### Secure Computing integration to extend Scriptong Expressivity
+Another important future improvement concerns extending the scripting expressivity of the RGB protocol through Hardware Secure Modules and Trusted Execution Environments. The HSM are hardware tamper-proof trusted computing devices able to run generic scripts such as the ones used to describe the behavior of an asset. The HSM servers will allow to enforce arbitrarily more complex smart contracts directly on Bitcoin blockchain, but they will also serve as hardware oracles, retrieving the data that triggers a smart contract from off-chain outlets. In fact, natively the RGB protocol – just like any other transfer protocol on a blockchain – can make use of data endogenous to its blockchain, therefore very elementary data such as time, fees or amounts. When an issuer wants to program a digital asset to be transferred only when some event happens in the real world, then an oracle is needed in order to trigger the smart contract. This is exactly what an HSM can serve for, thus enabling unimaginable use cases both for issuers and users.
+
+Using such technology, an issuer or the traders exchanging the asset are forced to obey to the contracts terms and the various conditions for the asset transferability, leaving the only option to issuers or to users to partially cheat by breaking the HSM, which will not make them  able to steal anything in any case.
