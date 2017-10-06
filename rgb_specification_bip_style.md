@@ -190,7 +190,7 @@ The objective of the next RGB protocol improvement is to:
 
 This way users owning payment channels containing different assets will be able to atomically swap portions of their channels according to the exchange rate they initially agree to.
 
-### Secure Computing integration to extend Scriptong Expressivity
+### Secure Computing integration to extend Scripting Expressivity
 Another important future improvement concerns extending the scripting expressivity of the RGB protocol through Hardware Secure Modules and Trusted Execution Environments. The HSM are hardware tamper-proof trusted computing devices able to run generic scripts such as the ones used to describe the behavior of an asset. The HSM servers will allow to enforce arbitrarily more complex smart contracts directly on Bitcoin blockchain, but they will also serve as hardware oracles, retrieving the data that triggers a smart contract from off-chain outlets. In fact, natively the RGB protocol – just like any other transfer protocol on a blockchain – can make use of data endogenous to its blockchain, therefore very elementary data such as time, fees or amounts. When an issuer wants to program a digital asset to be transferred only when some event happens in the real world, then an oracle is needed in order to trigger the smart contract. This is exactly what an HSM can serve for, thus enabling unimaginable use cases both for issuers and users.
 
 Using such technology, an issuer or the traders exchanging the asset are forced to obey to the contracts terms and the various conditions for the asset transferability, leaving the only option to issuers or to users to partially cheat by breaking the HSM, which will not make them  able to steal anything in any case.
