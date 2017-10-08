@@ -109,8 +109,8 @@ Issuance -> Transaction A to Alice with tagging value J -> Transaction B to Bob 
 ```
 
 1. Bob gives to Alice a random tagging value `K` of twelve Bytes,
-2. Alice takes the tagging value `K` given by bob and splits it into 3 chunks of 4 Bytes `K1`, `K2`, `K3`. Then takes her own tagging value `J` and splits it into 3 chunks as well `J1`, `J2`, `J3`. (The most significant bit of every chunk is set to 0 because it's reserved for hard derivation)
-3. Alice takes the xpub of the issuer and derives the `Issuer_Fee` address as `xpub/J1/J2/J3/K1/K2/K3`
+2. Alice takes the tagging value `K` given by bob and splits it into 3 chunks of 4 Bytes `K1`, `K2`, `K3`. Then takes her own tagging value `J` and splits it into 3 chunks as well `J1`, `J2`, `J3`. 
+3. Alice takes the xpub of the issuer and derives the `Issuer_Fee` address as `xpub/J1/J2/J3/K1/K2/K3` (When deriving the most significant bit of every chunk is set to `0` because the `1` it's reserved for hardened derivation)
 4. Alice puts her tagging value `J` into the `Color_Def`, symmetrically encrypts the `Color_Def` with Bob's tagging value `K` and broadcasts transaction B.
 5. When Bob receives the transaction B he decrypts the `Color_Def` (inside the OP_RETURN) with `K` and finds `J`. 
 6. Bob then retrieves the previous transaction A where decrypts the `Color_Def` output with `J` to find the previous tagging value, in this case the previous is the issuing transaction otherwise he repeats the step until he finds the issuing transaction. 
