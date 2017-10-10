@@ -128,7 +128,7 @@ position | size | description
 14-15 | 1 byte | Position of the second colored input, if any, otherwise 0xff
 15-27 | 12 byte | the tagging value of the previous output of the second colored input , otherwise 0xffffffffffffffffffffffff
 27-28 | 1 byte | define the position of the first colored ouptut (which is partially colored)
-29-32 | 1 byte each | define the position of the second, third, 4th and 5th colored ouptut if any or 0xff
+28-32 | 1 byte each | define the position of the second, third, 4th and 5th colored ouptut if any or 0xff
 
 Transactions with more than two colored inputs or more than 6 colored outputs are not allowed (one must build more than one tx to merge more than two inputs)
 
