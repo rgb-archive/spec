@@ -60,7 +60,12 @@ The following Process Description assumes:
 1. The issuer prepares the public contract for the asset issuing, with the following structure: <br>
 <pre>
 {
-  "version": <Integer>, # RGB Meta-script version
+  "version":{ # RGB Meta-script version
+     # https://semver.org
+     "major": <Integer>, # version when you make incompatible API changes
+     "minor": <Integer>, # version when you add functionality in a backwards-compatible manner
+     "patch": <Integer>  # version when you make backwards-compatible bug fixes
+  },
   "title": <String>, # Title of the asset contract
   "description": <String>, # Description of possible reediming actions and non-script conditions
   "issuer_pubkey": <String>, # Public key of the issuer
