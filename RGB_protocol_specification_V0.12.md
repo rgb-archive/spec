@@ -60,22 +60,22 @@ The following Process Description assumes:
 1. The issuer prepares the public contract for the asset issuing, with the following structure: <br>
 ```c
 {
-  "version":{ # RGB Meta-script version
-     # https://semver.org
-     "major": <Integer>, # version when you make incompatible API changes
-     "minor": <Integer>, # version when you add functionality in a backwards-compatible manner
-     "patch": <Integer>  # version when you make backwards-compatible bug fixes
-  },
-  "title": <String>, # Title of the asset contract
-  "description": <String>, # Description of possible reediming actions and non-script conditions
-  "issuer_pubkey": <String>, # Public key of the issuer
-  "issuance_date": <Date>, # Date of issuance
-  "issuance_utxo": <String>, # Utxo to use in the issuance Input
-  "contract_url": <String>, # Unique url for the publication of the contract and the light-anchors
-  "re-issuance_url": <String> # Url for the contract of which this contract is the reissuance
-  "next_re-issuance_enabled": <Boolean> # Flag to represent the possibility of reissuance
-  "max_hops": <Integer>, # Maximum amount of onchain transfers that can be performed on the asset before reissuance
-  "min_amount": <Integer>, # Minimum amount of colored satoshis that can be transferable together 
+	"version":{
+		// RGB Meta-script version - https://semver.org
+		"major": <Integer>, // version when you make incompatible API changes
+		"minor": <Integer>, // version when you add functionality in a backwards-compatible manner
+		"patch": <Integer>  // version when you make backwards-compatible bug fixes
+	},
+	"title": <String>, // Title of the asset contract
+	"description": <String>, // Description of possible reediming actions and non-script conditions
+	"issuer_pubkey": <String>, // Public key of the issuer
+	"issuance_date": <Date>, // Date of issuance
+	"issuance_utxo": <String>, // Utxo to use in the issuance Input
+	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
+	"re-issuance_url": <String> // Url for the contract of which this contract is the reissuance
+	"next_re-issuance_enabled": <Boolean> // Flag to represent the possibility of reissuance
+	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
+	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferable together 
 }
 ```
 2. The issuer signs the contract with his public PGP key, timestamps it with OpenTimestamps and publishes the contract, followed by the proofs, on the selected public channel.
