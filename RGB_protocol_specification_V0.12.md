@@ -58,7 +58,7 @@ The following Process Description assumes:
 * single-asset issuance and transfers (multi-asset issuance and transfers are possible);
 ### Basic Asset Issuance
 1. The issuer prepares the public contract for the asset issuing, with the following structure: <br>
-<pre>
+```c
 {
   "version":{ # RGB Meta-script version
      # https://semver.org
@@ -77,7 +77,7 @@ The following Process Description assumes:
   "max_hops": <Integer>, # Maximum amount of onchain transfers that can be performed on the asset before reissuance
   "min_amount": <Integer>, # Minimum amount of colored satoshis that can be transferable together 
 }
-</pre>
+```
 2. The issuer signs the contract with his public PGP key, timestamps it with OpenTimestamps and publishes the contract, followed by the proofs, on the selected public channel.
 3. Each receiver of the asset transmits his address to the issuer (possibly in the context of a purchase process).
 4. The issuer composes, signs and broadcasts a Bitcoin transaction with the following format (the ordering of inputs and outputs is irrelevant):
