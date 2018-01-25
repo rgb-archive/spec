@@ -1,11 +1,13 @@
-# RGB Protocol Specification V0.12
+# RGB Protocol Specification V0.20
 ## Abstract
 This document contains the technical specification for the proposed “RGB” protocol for the issuance, the storage and the transfer of blockchain-based digital assets. The protocol aims to provide a standard to perform the aforementioned goal in a way that overcomes the major shortcomings of previous attempts. The protocol is based on Bitcoin, and it’s aimed to provide an acceptable level of scalability, confidentiality, and standardness.
 ## Motivation
 ### Digital Assets
 There is a continuous and growing interest for digital assets somehow representing a proxy for securities (shares, bonds, deposits, royalties, voting rights, IOUs for physical goods, etc.), utilities (vouchers, coupons, fidelity points, casino tokens, discount rights, presell receipts, payment alternatives, etc.) or collectibles. Traditional ways to issue and transfer assets are usually slow, expensive, inefficient, and present a lot of friction, both technological and regulatory. Nowadays an increasing number of businesses, startups, financial institutions or even individuals are willing to issue digital assets across multiple use-cases.
 ### Blockchain-based Assets?
-While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity). Much of this interest is driven by marketing reasons in the context of the current hype cycle, as blockchain-based strategies often result useless (in many digital asset schemes there is already unavoidable need for a central counterparty) and even harmful (a blockchain-based design is usually more expensive, slow, inefficient, and privacy-lacking if compared to centralized existent alternatives, its implementation is usually more complex, challenged by new and not well understood security issues and it requires skills not common in the market, while providing “features” that are often undesirable for business and/or regulatory reasons, like pseudo-anonymity, censorship-resistance, complete openness, etc.). There could be, anyway, some legit reasons to use such a design.
+While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity). 
+
+Much of this interest is driven by marketing reasons in the context of the current hype cycle, as blockchain-based strategies often result useless (in many digital asset schemes there is already unavoidable need for a central counterparty) and even harmful (a blockchain-based design is usually more expensive, slow, inefficient, and privacy-lacking if compared to centralized existent alternatives, its implementation is usually more complex, challenged by new and not well understood security issues and it requires skills not common in the market, while providing “features” that are often undesirable for business and/or regulatory reasons, like pseudo-anonymity, censorship-resistance, complete openness, etc.). There could be, anyway, some legit reasons to use such a design.
 #### Full Decentralization
 A first class of reasons could be related to future development of decentralized mechanisms enabling autonomous, trustless, and censorship-resistant enforcement of rights/benefits connected to the assets, in order to extend some the features of Bitcoin to more generic types of digital ownership. Even if this kind of application is still far from actual commercial use, trust-less, automatic, and unstoppable contracts with low to zero counterparty risk are potentially natural candidates for blockchain-based asset schemes. While these ideas are still far from complete, general-purpose, and practical implementations, there are many niche theoretical fields (“smart-property”, “DAOs”, etc.) where they seem promising, and some of these features are achievable by present-day state-of-the-art technologies in some degree.
 #### Blindness/Federation
@@ -22,33 +24,62 @@ A new, better proposal for a blockchain-based asset management standard should s
 ### Initial Definitions
 * We call **“asset”** a generic family of units of digital property, whose scarcity, divisibility and conditional transferability features, as well as associated “rights” (legally or technically enforced), are defined by the relative contract before the issuance.
 * We call **“token”** a single conventional unit of a specific asset type (without further assumptions about its divisibility).
-* We call **“colored”** a transaction input or output which represents (entirely or partially) an asset transmission.
-* We call **“contract”** the set of conditions that the issuer commit to when issuing an asset, including an executable meta-script and a free-text part.
-* We call **“issuance”** the action, performed by an issuer, of creating and publishing an asset contract, generating and distributing a certain number of tokens to a list of recipient Bitcoin addresses.
-* We call **“transfer”** the action, performed by one or more senders, of transferring tokens to Bitcoin addresses owned by one or more receivers.
+* We call **“colored”** a transaction output which represents the ownership of tokens of one or more assets.
+* We call **“contract”** the set of conditions that the issuer commit to when issuing an asset, including rules that will be enforced on any transfer of that asset.
+* We call **“issuance”** the action, performed by an issuer, of creating and publishing an asset contract, generating and distributing a certain number of tokens to a list of recipient. The issuance can be done only once for any given token (no more tokens can be "printed" after the first issuance).
+* We call **“transfer”** the action, performed by one or more senders, of transferring tokens it/they owned to one or more receivers.
 * We call **“redemption”** the action, performed by one or more senders, of transferring tokens to their initial issuer in order to redeem (leveraging autonomous mechanisms or legal claims) the rights associated with the correspondent asset contract.
 * We call **“re-issuance”** the action, performed by one or more senders, of transferring tokens to the initial issuer in order to have them issued again on a new public contract, possibly linked with the previous one.
+
 ### Main features
 #### Contract Engine
 In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to run transactions against the meta-script contained in any public contract, testing deterministically the compliance with the contract. The meta-script should allow an easy versioning to build and manage expansions, dialect, upgrades.
 #### Lightning support
-Being the protocol UTXO-based, it will be possible to open a Lightning Network channel which is asset-colored (entirely or partially), exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures.
+Being the protocol UTXO-based, it will be possible to link one or more assets owned to a Lightning Network channel which becomes *colored*, exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures.
+
 [expand]
-#### Proofmarshal
-The protocol will include another L2 strategy for scalability/fungibility, an asset-specific implementation on the “Proofmarshal” concept, based on “Single-Use-Seals” and “Proof-of-Publication-Ledgers”. The scheme requires a an agreed-upon third party known as **“sealer”**, with the ability to censor transactions but not to manipulate/forge/falsify them. In the context of an issued asset, the sealer could be the issuer itself, or an independent third party selected from a set defined by the issuer in the contract. 
+#### Storage and Proofmarshal
+The scheme requires one or more agreed-upon third parties which store the chain of proofs and accept queries in a "Bloom filter" way to increase the final user's privacy.  False positive can be added randomly in order to maintain even more privacy. 
+
+In the context of an issued asset, this **"storage"** server could be the issuer itself, or an independent third party selected from a set defined by the receiver of the transaction. 
+
+The protocol will also include another L2 strategy for scalability/fungibility, an asset-specific implementation on the “Proofmarshal” concept, based on “Single-Use-Seals” and “Proof-of-Publication-Ledgers”. this storage third party *might* also act as **“sealer”**, with the ability to censor transactions but not to manipulate/forge/falsify them by committing multiple proofs from different anonymous users to a single UTXO.
+
 [expand]
+
 #### Dark Color 
 In order to increase the anonymity set for each issued asset in the context of on-chain transactions, a feature is introduced that makes the tracking of each token possible for the token receivers only, and completely unrelated with the ordering of outputs/input. 
+
 Since any assumption of additional protocols for off-band communication weakens the standardness of the proposal, we leverage the only type of off-band communication already assumed as existing in most Bitcoin on-chain transactions: the address passing. When a payee generates an address to give to the payer, he also generates a number, hereby called **“dark-tag”**, and he passes it to the payee along with the address. 
-Every RGB on-chain transaction includes an OP_RETURN field, where he encrypts, using the payee’s dark-tag, the following information in a structured way:
-* transaction dark-tags of each colored input used in the payment (in order for the payee to be able to decrypt;
-* for each colored input, the ordinal position of the outputs inheriting that color (the last output referred here will inherit the color only up to capacity);
-* a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script);
-* padding up to maximum OP_RETURN size (for better fungibility of RGB transactions).
+
+#### Token Transactions
+
+##### Address-Based vs UTXO-Based
+
+RGB allows the sender of a colored transaction to transfer the ownership of any asset in two slightly different ways:
+
+* **Address-Based** if the receiver prefers to receive the colored UTXO itself;
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more);
+
+##### Structure
+
+Every RGB on-chain transaction will have a corresponding **"proof"**, where the sender encrypts, using the payee’s dark-tag, the following information in a structured way:
+
+* the entire chain of proofs received up to the issuance contract;
+* transaction dark-tags of each proof used as input in the payment (in order for the payee to be able to progressively decrypt the chain of proofs);
+* a list of triplets made with:
+	* color of the token being transacted
+	* amount being transacted
+	* either an UTXO to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
+* a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
+
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address. 
+
+**[note on safety of mixing Bitcoin and RGB addresses]**
+
 This feature should enhance the anonymity set of asset users, making chain analysis techniques almost as difficult as ones on “plain bitcoin” transactions. The leakage of a specific transaction dark-tag gives away the path from the issuing to the transaction itself, and of the “sibling” transactions, but it preserves uncertainty about other branches.
 #### Light Color
-On-chain scalability of “colored-coin” schemes is especially problematic for lightweight nodes. The process of retrieving transactions to verify the chain all the way up to the issuing transaction becomes very soon too resource-intensive on lightweight clients. This is a general problem, as true with colored-coin-like protocols as with “plain bitcoin”, where the only partial mitigation is “SPV”, which dangerously relies on trusting the majority of hashing power. This cannot work with meta-protocols since merkle-tree-commitments aren’t forced to respect the meta-protocol rules. The best way to solve this general problem in Bitcoin will probably be client-side filtering, but while this solution is not operational and widespread yet, a simpler feature can be implemented, leveraging a central repository. Since any centralization point weakens the trustlessness and the permissionlessnes of the proposal, we leverage the only type of centralization already assumed as existing in any asset issuing: the contract publication. It’s assumed, in most use cases, that the initial issuing contract must be effectively published, leveraging non-technical dynamics as for recognizability, univocity, accountability. This is a centralization point that cannot be trivially avoided. The system used to store and transfer digital assets can be fairly decentralized, while the method to issue them cannot, in most imaginable cases. This feature will standardize a way to publish the issuance contract on one or more public platforms, and to append to the contract, at every asset-related transaction, a dark-tag-encrypted string, called **“light-anchor”** including the complete chain of transfers, from the issuance to the transaction, with tx-ids of interesting transactions. The payee’s light node can then read the last light-anchor, decrypt it with the current dark-tag, use bloom filters to request and independently verify the chain of transfers. Public repositories of choice could be both centralized (e.g., a gist public file and hash256 is the content hash, and light-anchor are posted in comments) or decentralized (e.g., IPFS-hash pointing to a file in an IPFS distributed network). False positive can be added randomly in order to maintain more privacy. Bitcoin full nodes, or Light clients connected to a trusted full node, will not need this feature.
+On-chain scalability of “colored-coin” schemes is especially problematic for lightweight nodes. The process of retrieving transactions to verify the chain all the way up to the issuing transaction becomes very soon too resource-intensive on lightweight clients. This is a general problem, as true with colored-coin-like protocols as with “plain bitcoin”, where the only partial mitigation is “SPV”, which dangerously relies on trusting the majority of hashing power. This cannot work with meta-protocols since merkle-tree-commitments aren’t forced to respect the meta-protocol rules. The best way to solve this general problem in Bitcoin will probably be client-side filtering, but while this solution is not operational and widespread yet, a simpler feature can be implemented, leveraging a central repository. Since any centralization point weakens the trustlessness and the permissionlessnes of the proposal, we leverage the only type of centralization already assumed as existing in any asset issuing: the contract publication. It’s assumed, in most use cases, that the initial issuing contract must be effectively published, leveraging non-technical dynamics as for recognizability, univocity, accountability. This is a centralization point that cannot be trivially avoided. The system used to store and transfer digital assets can be fairly decentralized, while the method to issue them cannot, in most imaginable cases. This feature will standardize a way to publish the issuance contract on one or more public platforms, and to append to the contract, at every asset-related transaction, a dark-tag-encrypted string, called **“light-anchor”** including the complete chain of transfers, from the issuance to the transaction, with tx-ids of interesting transactions. The payee’s light node can then read the last light-anchor, decrypt it with the current dark-tag, use bloom filters to request and independently verify the chain of transfers. Bitcoin full nodes, or Light clients connected to a trusted full node, will not need this feature.
 #### Color Addition
 [expand]
 ## Exemplified Process Description
@@ -163,13 +194,3 @@ The following Process Description assumes:
 * Payment protocol for dark-tags
 ## Copyright
 [expand: DPL/MIT]
-
-
-
-    
-
-
-
-
-
-
