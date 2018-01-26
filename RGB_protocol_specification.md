@@ -70,7 +70,7 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 * a list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either an UTXO to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
+	* either an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
 * a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
 
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address. 
@@ -88,8 +88,10 @@ The following Process Description assumes:
 * one-2-one transfers after the issuance (many-to-many transfers are possible);
 * single-asset issuance and transfers (multi-asset issuance and transfers are possible);
 ### Basic Asset Issuance
-1. The issuer prepares the public contract for the asset issuing, with the following structure: <br>
-```c
+
+1. The issuer prepares the public contract for the asset issuing, with the following structure:
+
+```json
 {
 	"version":{
 		// RGB Meta-script version - https://semver.org
@@ -151,6 +153,7 @@ The following Process Description assumes:
     list of tx-ids of all the relevant transactions that the payee has to download in order to validate the property chain
 5. If using a light node, the payee downloads all the light-anchors from the contract public channel, then he founds the relevant light-anchor trying to decrypt them with his dark-tag, then he gets the list of relevant tx-ids and requests the transactions via bloom-filter (optional).
 6. The payeeverifies the transaction, both in respect with Bitcoin rules and in respect with the contract rules, waiting for confirmations in order to consider the transfer completed.
+
 ### Lightning Asset Transfer
 [expand]
 ### Proofmarshal Asset Transfer
