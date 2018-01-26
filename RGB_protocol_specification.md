@@ -59,19 +59,19 @@ Since any assumption of additional protocols for off-band communication weakens 
 RGB allows the sender of a colored transaction to transfer the ownership of any asset in two slightly different ways:
 
 * **Address-Based** if the receiver prefers to receive the colored UTXO itself;
-* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more);
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256(TX_HASH:OUTPUT_INDEX)` in order to increase the privacy of the receiver.
 
 ##### Structure
 
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the sender encrypts, using the payee’s dark-tag, the following information in a structured way:
 
 * the entire chain of proofs received up to the issuance contract;
-* transaction dark-tags of each proof used as input in the payment (in order for the payee to be able to progressively decrypt the chain of proofs);
 * a list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
 * a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
+* The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address. 
 
@@ -84,6 +84,7 @@ On-chain scalability of “colored-coin” schemes is especially problematic for
 [expand]
 ## Exemplified Process Description
 The following Process Description assumes:
+
 * the use of Version 1.0 of RGB Meta-scrip;
 * one-2-one transfers after the issuance (many-to-many transfers are possible);
 * single-asset issuance and transfers (multi-asset issuance and transfers are possible);
@@ -130,14 +131,18 @@ The following Process Description assumes:
 The payer also produces a new proof containing:
 
 * RGB Meta-script version
-* List of the dark-tags of the previous proofs used as inputs
 * A list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either an UTXO in the form (TX_hash, index) to send an *UTXO-Based* 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* 
 * Meta-script-related transaction meta-data
+* The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
 This proof is simmetrically encrypted using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
+
+Every signature performed in the transaction **must** include a commitment to the proof produced.
+
+In the case of a multisig address spending funds **all** the signatures must include the same commitment.
 
 ### Lightning Asset Transfer
 [expand]
