@@ -1,6 +1,3 @@
-import json
-
-
 class UTXO:
     def __init__(self, txid: str, index: int):
         assert index >= 0, "The UTXO index must be positive"
@@ -19,8 +16,6 @@ class UTXO:
         parts = string.split(':')
         return UTXO(parts[0] if parts[0] != '' else None, int(parts[1]))
 
-    def to_json(self) -> str:
-        return json.dumps({
-            'txid': self.txid,
-            'index': self.index
-        }, sort_keys=True)
+    @staticmethod
+    def from_dict(in_dict):
+        return UTXO(in_dict['txid'], in_dict['index'])

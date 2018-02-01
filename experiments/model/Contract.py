@@ -19,6 +19,15 @@ class Contract:
         hash_object = hashlib.sha256(self.to_json().encode('utf-8'))
         return hash_object.hexdigest()
 
+    @staticmethod
+    def from_json(string: str) -> 'Contract':
+        obj = json.loads(string)
+
+        issuance_utxo = UTXO.from_dict(obj['issuance_utxo'])
+        owner_utxo = UTXO.from_dict(obj['owner_utxo'])
+
+        return Contract(obj['title'], issuance_utxo, owner_utxo, obj['total_supply'])
+
     def to_json(self) -> str:
         return json.dumps({
             'title': self.title,
