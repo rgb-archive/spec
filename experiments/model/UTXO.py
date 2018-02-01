@@ -19,3 +19,9 @@ class UTXO:
     @staticmethod
     def from_dict(in_dict):
         return UTXO(in_dict['txid'], in_dict['index'])
+
+    def __eq__(self, other):
+        if isinstance(self, other.__class__):
+            return self.txid == other.txid and self.index == other.index
+
+        return False
