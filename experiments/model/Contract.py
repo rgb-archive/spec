@@ -41,3 +41,8 @@ class Contract:
                'Committed to UTXO {}\n' \
                'Total issuance of {} sent to {}'.format(self.title, self.get_token_id(), self.issuance_utxo,
                                                         self.total_supply, self.owner_utxo)
+
+    def verify(self) -> bool:
+        # TODO: verify the commitment on the blockchain
+
+        return True
