@@ -9,3 +9,9 @@ class RGBOutput:
         self.token_id = token_id
         self.amount = amount
         self.to = to
+
+    def __str__(self) -> str:
+        return 'RGBOutput of token {}. Moving {} to {}'.format(self.token_id, self.amount, self.to)
+
+    def __repr__(self) -> str:
+        return self.__str__()

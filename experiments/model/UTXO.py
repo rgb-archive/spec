@@ -1,5 +1,5 @@
 class UTXO:
-    def __init__(self, txid: str, index: int):
+    def __init__(self, txid: str or None, index: int):
         assert index >= 0, "The UTXO index must be positive"
 
         if txid == '':
@@ -25,3 +25,6 @@ class UTXO:
             return self.txid == other.txid and self.index == other.index
 
         return False
+
+    def __str__(self) -> str:
+        return 'UTXO<{}:{}>'.format(self.txid, self.index)

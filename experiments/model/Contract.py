@@ -35,3 +35,9 @@ class Contract:
             'owner_utxo': self.owner_utxo.__dict__,
             'total_supply': self.total_supply
         }, sort_keys=True)
+
+    def __str__(self):
+        return 'Contract "{}", token id = {}\n' \
+               'Committed to UTXO {}\n' \
+               'Total issuance of {} sent to {}'.format(self.title, self.get_token_id(), self.issuance_utxo,
+                                                        self.total_supply, self.owner_utxo)
