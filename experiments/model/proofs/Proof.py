@@ -13,6 +13,9 @@ class Proof:
         self.outputs = outputs
 
     def verify(self) -> bool:
+        if not self.utxo.spent:
+            raise Exception('Proof committed to unspent UTXO {}'.format(self.utxo))
+
         in_amounts: Dict[str, int] = {}
         out_amounts: Dict[str, int] = {}
 

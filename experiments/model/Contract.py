@@ -31,8 +31,8 @@ class Contract:
     def to_json(self) -> str:
         return json.dumps({
             'title': self.title,
-            'issuance_utxo': self.issuance_utxo.__dict__,
-            'owner_utxo': self.owner_utxo.__dict__,
+            'issuance_utxo': self.issuance_utxo.to_dict(),
+            'owner_utxo': self.owner_utxo.to_dict(),
             'total_supply': self.total_supply
         }, sort_keys=True)
 
@@ -45,4 +45,4 @@ class Contract:
     def verify(self) -> bool:
         # TODO: verify the commitment on the blockchain
 
-        return True
+        return self.issuance_utxo.spent
