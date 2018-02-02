@@ -1,6 +1,6 @@
-from model.Contract import Contract
 from model.RGBOutput import RGBOutput
 from model.UTXO import UTXO
+from model.contracts.Contract import Contract
 from model.proofs.Proof import Proof
 
 
