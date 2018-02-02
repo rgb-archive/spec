@@ -36,6 +36,11 @@ class AbstractContract:
 
         return contracts_map[obj['type']].from_json_obj(obj)
 
+    def verify(self) -> bool:
+        # TODO: verify the commitment on the blockchain
+
+        return self.issuance_utxo.spent
+
     # Templates for child classes
 
     def get_type(self) -> str:
@@ -47,9 +52,6 @@ class AbstractContract:
 
     def to_json(self) -> str:
         raise Exception('Cannot serialize an abstract contract')
-
-    def verify(self) -> bool:
-        raise Exception('Cannot verify an abstract contract')
 
     def __str__(self):
         return 'Contract (type="{}") "{}", token id = {}\n' \

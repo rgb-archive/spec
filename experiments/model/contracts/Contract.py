@@ -24,12 +24,8 @@ class Contract(AbstractContract):
     def to_json(self) -> str:
         return json.dumps({
             'title': self.title,
+            'type': self.get_type(),
             'issuance_utxo': self.issuance_utxo.to_dict(),
             'owner_utxo': self.owner_utxo.to_dict(),
             'total_supply': self.total_supply
         }, sort_keys=True)
-
-    def verify(self) -> bool:
-        # TODO: verify the commitment on the blockchain
-
-        return self.issuance_utxo.spent
