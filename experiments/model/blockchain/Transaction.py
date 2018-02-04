@@ -16,7 +16,7 @@ class Transaction:
         self.block: Block or None = None
 
         for address, count in zip(map_amounts, range(len(map_amounts.keys()))):
-            self.utxos.append(UTXO(txid, count, address, map_amounts[address]))
+            self.utxos.append(UTXO(txid, count, address, map_amounts[address], False, self))
 
     def get_utxo(self, index: int):
         assert index < len(self.utxos), "Index out of range"

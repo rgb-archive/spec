@@ -5,7 +5,7 @@ from model.blockchain.Transaction import Transaction
 
 class UTXO:
     def __init__(self, txid: str or None, index: int, to: str or None = None, amount: int or None = None,
-                 spent: bool = False):
+                 spent: bool = False, transaction: Transaction or None = None):
         assert index >= 0, "The UTXO index must be positive"
         assert to != '', "Invalid destination address"
         assert amount is None or amount > 0, "Invalid UTXO amount"
@@ -18,8 +18,7 @@ class UTXO:
         self.to = to
         self.amount = amount
         self.spent = spent
-
-        self.transaction: Transaction or None = None
+        self.transaction = transaction
 
     def known_txid(self) -> bool:
         return self.txid is not None
