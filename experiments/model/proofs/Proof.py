@@ -27,7 +27,7 @@ class Proof:
 
             for proof_out in proof.outputs:
                 if proof_out.to != self.utxo:
-                    raise Exception('Output {} is not committed to this proof\'s UTXO {}'.format(proof_out, self.utxo))
+                    continue  # ignore this output, not for us
 
                 in_amounts[proof_out.token_id] = in_amounts.get(proof_out.token_id, 0) + proof_out.amount
 

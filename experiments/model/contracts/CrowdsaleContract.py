@@ -1,3 +1,4 @@
+import hashlib
 import json
 from typing import Dict
 
@@ -28,6 +29,10 @@ class CrowdsaleContract(AbstractContract):
 
         return CrowdsaleContract(obj['title'], issuance_utxo, obj['total_supply'], obj['price_sat'], obj['from_block'],
                                  obj['to_block'], obj['deposit_address'])
+
+    def get_change_token_id(self) -> str:
+        hash_object = hashlib.sha256((self.to_json() + 'CHANGE').encode('utf-8'))
+        return hash_object.hexdigest()
 
     def to_json(self) -> str:
         return json.dumps({
