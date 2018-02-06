@@ -1,4 +1,6 @@
 import math
+from functools import reduce
+from typing import List
 
 from model.RGBOutput import RGBOutput
 from model.UTXO import UTXO
@@ -9,19 +11,8 @@ from model.proofs.Proof import Proof
 
 
 class CrowdsaleBuyProof(Proof):
-    def __init__(self, utxo: UTXO, contract: CrowdsaleContract, token_amount: int, change_amount: int, to_utxo: UTXO,
-                 change_to_utxo: UTXO, blockchain: Blockchain):
-        assert token_amount > 0 or change_amount > 0, "Invalid amounts"
-
-        rgb_outputs = []
-
-        if token_amount > 0:
-            rgb_outputs.append(RGBOutput(contract.get_token_id(), token_amount, to_utxo))
-
-        if change_amount > 0:
-            rgb_outputs.append(RGBOutput(contract.get_change_token_id(), change_amount, change_to_utxo))
-
-        super().__init__(utxo, [], rgb_outputs)
+    def __init__(self, utxo: UTXO, contract: CrowdsaleContract, outputs: List[RGBOutput], blockchain: Blockchain):
+        super().__init__(utxo, [], outputs)
 
         self.contract = contract
         self.blockchain = blockchain
@@ -71,24 +62,37 @@ class CrowdsaleBuyProof(Proof):
         if not require_token_output and not require_change_output:
             raise Exception('No change or token available')
 
-        # FIXME
-        if len(self.outputs) > 2 or (len(self.outputs) == 2 and self.outputs[0].token_id == self.outputs[1].token_id):
-            return False  # Remove this check by aggregating multiple token outputs or change outputs
+        token_outputs: List[RGBOutput] = []
+        change_outputs: List[RGBOutput] = []
 
-        token_output = [o for o in self.outputs if o.token_id == self.contract.get_token_id()]
-        change_output = [o for o in self.outputs if o.token_id == self.contract.get_change_token_id()]
+        for output in self.outputs:
+            if output.token_id == self.contract.get_token_id():
+                token_outputs.append(output)
+            elif output.token_id == self.contract.get_change_token_id():
+                change_outputs.append(output)
+            else:
+                raise Exception('Output is neither a token or change: {}'.format(output))
+
+        total_token_amount: int = reduce(lambda x, y: x + y.amount, token_outputs, 0)
+        total_change_amount: int = reduce(lambda x, y: x + y.amount, change_outputs, 0)
+
+        # ------------
 
         if require_token_output:
-            if len(token_output) == 0:
-                return False  # no token output
-            if token_output[0].amount != user_token_bought:
-                return False  # invalid amount
+            if len(token_outputs) == 0:
+                raise Exception('Missing token output in CrowdsaleBuyProof committed to {}'.format(self.utxo))
+            if total_token_amount != user_token_bought:
+                raise Exception(
+                    'Invalid token amount (got {}, expected {}) in CrowdsaleBuyProof committed to {}'.format(
+                        total_token_amount, user_token_bought, self.utxo))
 
         if require_change_output:
-            if len(change_output) == 0:
-                return False  # no change output
-            if change_output[0].amount != user_change:
-                return False  # invalid amount
+            if len(change_outputs) == 0:
+                raise Exception('Missing change output in CrowdsaleBuyProof committed to {}'.format(self.utxo))
+            if total_change_amount != user_change:
+                raise Exception(
+                    'Invalid change amount (got {}, expected {}) in CrowdsaleBuyProof committed to {}'.format(
+                        total_change_amount, user_change, self.utxo))
 
         return self.contract.verify() and \
                len(self.inputs_proof) == 0 and \

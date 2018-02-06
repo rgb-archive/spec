@@ -22,8 +22,10 @@ buy_token_block = Block(12, [someoneelse_buys_all_tokens, buy_token], blockchain
 new_token_owner_utxo = UTXO('fff', 1)
 new_change_owner_utxo = UTXO('ffb', 0)
 
-buy_proof = CrowdsaleBuyProof(buy_token.get_utxo(0), contract, 1, 10, new_token_owner_utxo, new_change_owner_utxo,
-                              blockchain)
+token_rgb_output = RGBOutput(contract.get_token_id(), 1, new_token_owner_utxo)
+change_rgb_output = RGBOutput(contract.get_change_token_id(), 10, new_change_owner_utxo)
+
+buy_proof = CrowdsaleBuyProof(buy_token.get_utxo(0), contract, [token_rgb_output, change_rgb_output], blockchain)
 buy_token.utxos[0].spend()
 
 spend_output = RGBOutput(contract.get_token_id(), 1, UTXO(None, 0))
