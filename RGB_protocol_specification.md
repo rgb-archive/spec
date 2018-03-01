@@ -34,25 +34,18 @@ A new, better proposal for a blockchain-based asset management standard should s
 ### Main features
 #### Contract Engine
 In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to run transactions against the meta-script contained in any public contract, testing deterministically the compliance with the contract. The meta-script should allow an easy versioning to build and manage expansions, dialect, upgrades.
-#### Lightning support
-Being the protocol UTXO-based, it will be possible to link one or more assets owned to a Lightning Network channel which becomes *colored*, exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures.
+#### Publisher Servers
+The scheme requires additional agreed-upon third parties which store the chain of encrypted proofs and accept related queries, possibly in a "Bloom filter" way to increase privacy (false positive can be added randomly in order to maintain even more privacy). In the context of an issued asset, these **"publisher"** servers could be mantained by the issuer itself. More generally, they can be mantained individually by the receivers, or by one or many independent third parties selected from a set defined by the receivers. The storage and the trasmission of the proofs could be achieved via a decentralized sistem (BitTorrent, IPFS, Siacoin, ecc.), but the censorship-resistance gains do not compensate for the increased complexity. Moreover, the Proofmarshal Integration (see below) requires a centralized third party anyway, which could be effectevely leveraged for the Lightning Network Integragion (see below) as well.
+#### Extended URI
+Since any assumption of additional protocols for off-band communication weakens the standardness of the proposal, we leverage the only type of off-band communication already assumed as existing in most Bitcoin on-chain transactions: the address passing. When a payee generates an address to give to the payer, he also transmit the IP address (or set of IP addresses) of the selected Publisher Server (or collection of Publisher Servers), and he finally generates a number, hereby called **“dark-tag”**, passing it to the payee along with the address and the Publishing information. This feature can be developed extending the standard Bitcoin URI.
 
-[expand]
-#### Storage and Proofmarshal
-The scheme requires one or more agreed-upon third parties which store the chain of proofs and accept queries in a "Bloom filter" way to increase the final user's privacy.  False positive can be added randomly in order to maintain even more privacy. 
+#### Proofmarshal Integration
+The protocol will also include another L2 strategy for scalability/fungibility, an asset-specific implementation of the “Proofmarshal” concept, based on “Single-Use-Seals” and “Proof-of-Publication-Ledgers”. In this integration, a Publisher Server *might* also act as **“sealer”**, with the ability to censor transactions but not to manipulate/forge/falsify them by committing multiple proofs from different anonymous users to a single UTXO. This could decouple the anti-double-spending function of the Bitcoin blockchain from the specific asset transations, making possible to "seal" a huge number of them spending a single Bitcoin UTXO.
 
-In the context of an issued asset, this **"storage"** server could be the issuer itself, or an independent third party selected from a set defined by the receiver of the transaction. 
+#### Lightning Network Integration
+Being the protocol UTXO-based, it will be possible to link one or more assets owned to a Lightning Network channel which becomes *colored*, exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures. In this way, it will be possible to leverage the scalability and privacy features of the Lightning Network, as well as LN-enabled atomis swaps for decentralized asset exchange.
 
-The protocol will also include another L2 strategy for scalability/fungibility, an asset-specific implementation on the “Proofmarshal” concept, based on “Single-Use-Seals” and “Proof-of-Publication-Ledgers”. this storage third party *might* also act as **“sealer”**, with the ability to censor transactions but not to manipulate/forge/falsify them by committing multiple proofs from different anonymous users to a single UTXO.
-
-[expand]
-
-#### Dark Color 
-In order to increase the anonymity set for each issued asset in the context of on-chain transactions, a feature is introduced that makes the tracking of each token possible for the token receivers only, and completely unrelated with the ordering of outputs/input. 
-
-Since any assumption of additional protocols for off-band communication weakens the standardness of the proposal, we leverage the only type of off-band communication already assumed as existing in most Bitcoin on-chain transactions: the address passing. When a payee generates an address to give to the payer, he also generates a number, hereby called **“dark-tag”**, and he passes it to the payee along with the address. 
-
-#### Token Transactions
+### Structure
 
 ##### Address-Based vs UTXO-Based
 
@@ -61,7 +54,7 @@ RGB allows the sender of a colored transaction to transfer the ownership of any 
 * **Address-Based** if the receiver prefers to receive the colored UTXO itself;
 * **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256(TX_HASH:OUTPUT_INDEX)` in order to increase the privacy of the receiver.
 
-##### Structure
+##### Proofs
 
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the sender encrypts, using the payee’s dark-tag, the following information in a structured way:
 
@@ -78,8 +71,7 @@ In order to help a safe and easy management of the additional data required by t
 **[note on safety of mixing Bitcoin and RGB addresses]**
 
 This feature should enhance the anonymity set of asset users, making chain analysis techniques almost as difficult as ones on “plain bitcoin” transactions. The leakage of a specific transaction dark-tag gives away the path from the issuing to the transaction itself, and of the “sibling” transactions, but it preserves uncertainty about other branches.
-#### Light Color
-On-chain scalability of “colored-coin” schemes is especially problematic for lightweight nodes. The process of retrieving transactions to verify the chain all the way up to the issuing transaction becomes very soon too resource-intensive on lightweight clients. This is a general problem, as true with colored-coin-like protocols as with “plain bitcoin”, where the only partial mitigation is “SPV”, which dangerously relies on trusting the majority of hashing power. This cannot work with meta-protocols since merkle-tree-commitments aren’t forced to respect the meta-protocol rules. The best way to solve this general problem in Bitcoin will probably be client-side filtering, but while this solution is not operational and widespread yet, a simpler feature can be implemented, leveraging a central repository. Since any centralization point weakens the trustlessness and the permissionlessnes of the proposal, we leverage the only type of centralization already assumed as existing in any asset issuing: the contract publication. It’s assumed, in most use cases, that the initial issuing contract must be effectively published, leveraging non-technical dynamics as for recognizability, univocity, accountability. This is a centralization point that cannot be trivially avoided. The system used to store and transfer digital assets can be fairly decentralized, while the method to issue them cannot, in most imaginable cases. This feature will standardize a way to publish the issuance contract on one or more public platforms, and to append to the contract, at every asset-related transaction, a dark-tag-encrypted string, called **“light-anchor”** including the complete chain of transfers, from the issuance to the transaction, with tx-ids of interesting transactions. The payee’s light node can then read the last light-anchor, decrypt it with the current dark-tag, use bloom filters to request and independently verify the chain of transfers. Bitcoin full nodes, or Light clients connected to a trusted full node, will not need this feature.
+
 #### Color Addition
 [expand]
 ## Exemplified Process Description
