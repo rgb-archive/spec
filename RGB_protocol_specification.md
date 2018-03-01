@@ -1,4 +1,4 @@
-# RGB Protocol Specification V0.20
+# RGB Protocol Specification V0.21
 ## Abstract
 This document contains the technical specification for the proposed “RGB” protocol for the issuance, the storage and the transfer of blockchain-based digital assets. The protocol aims to provide a standard to perform the aforementioned goal in a way that overcomes the major shortcomings of previous attempts. The protocol is based on Bitcoin, and it’s aimed to provide an acceptable level of scalability, confidentiality, and standardness.
 ## Motivation
