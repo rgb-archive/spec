@@ -43,7 +43,7 @@ Since any assumption of additional protocols for off-band communication weakens 
 The protocol will also include another L2 strategy for scalability/fungibility, an asset-specific implementation of the “Proofmarshal” concept, based on “Single-Use-Seals” and “Proof-of-Publication-Ledgers”. In this integration, a Publisher Server *might* also act as **“sealer”**, with the ability to censor transactions but not to manipulate/forge/falsify them by committing multiple proofs from different anonymous users to a single UTXO. This could decouple the anti-double-spending function of the Bitcoin blockchain from the specific asset transations, making possible to "seal" a huge number of them spending a single Bitcoin UTXO.
 
 #### Lightning Network Integration
-Being the protocol UTXO-based, it will be possible to link one or more assets owned to a Lightning Network channel which becomes *colored*, exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures. In this way, it will be possible to leverage the scalability and privacy features of the Lightning Network, as well as LN-enabled atomis swaps for decentralized asset exchange.
+Being the protocol UTXO-based, it will be possible to link one or more assets owned to a Lightning Network channel which becomes *colored*, exchanging state updates which are compliant to the asset scheme, with strong guarantees that asset distribution will be preserved also in case of non-consensual closures. In this way, it will be possible to leverage the scalability and privacy features of the Lightning Network, as well as LN-enabled atomic swaps for decentralized asset exchange.
 
 ### Structure
 
