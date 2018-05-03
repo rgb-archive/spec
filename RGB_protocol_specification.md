@@ -5,7 +5,7 @@ This document contains the technical specification for the proposed “RGB” pr
 ### Digital Assets
 There is a continuous and growing interest for digital assets somehow representing a proxy for securities (shares, bonds, deposits, royalties, voting rights, IOUs for physical goods, etc.), utilities (vouchers, coupons, fidelity points, casino tokens, discount rights, presell receipts, payment alternatives, etc.) or collectibles. Traditional ways to issue and transfer assets are usually slow, expensive, inefficient, and present a lot of friction, both technological and regulatory. Nowadays an increasing number of businesses, startups, financial institutions or even individuals are willing to issue digital assets across multiple use-cases.
 ### Blockchain-based Assets?
-While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity). 
+While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity).
 
 Much of this interest is driven by marketing reasons in the context of the current hype cycle, as blockchain-based strategies often result useless (in many digital asset schemes there is already unavoidable need for a central counterparty) and even harmful (a blockchain-based design is usually more expensive, slow, inefficient, and privacy-lacking if compared to centralized existent alternatives, its implementation is usually more complex, challenged by new and not well understood security issues and it requires skills not common in the market, while providing “features” that are often undesirable for business and/or regulatory reasons, like pseudo-anonymity, censorship-resistance, complete openness, etc.). There could be, anyway, some legit reasons to use such a design.
 #### Full Decentralization
@@ -62,11 +62,11 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 * a list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
 * a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
-In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address. 
+In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
 
 **[note on safety of mixing Bitcoin and RGB addresses]**
 
@@ -84,7 +84,7 @@ The following Process Description assumes:
 
 1. The issuer prepares the public contract for the asset issuing, with the following structure:
 
-```json
+```c
 {
 	"version":{
 		// RGB Meta-script version - https://semver.org
@@ -126,7 +126,7 @@ The payer also produces a new proof containing:
 * A list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based*
 * Meta-script-related transaction meta-data
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
