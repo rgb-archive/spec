@@ -1,4 +1,52 @@
 # RGB Protocol Specification V0.21
+* [Abstract](#abstract)
+* [Motivation](#motivation)
+	* [Digital Assets](#digital-assets)
+	* [Blockchain-based Assets?](#blockchain-based-assets)
+		* [Full Decentralization](#full-decentralization)
+		* [Blindness/Federation](#blindnessfederation)
+		* [Auditability](#auditability)
+		* [Standardness](#standardness)
+	* [Existent Alternatives](#existent-alternatives)
+* [General Design](#general-design)
+	* [General Goals](#general-goals)
+	* [Initial Definitions](#initial-definitions)
+	* [Main Features](#main-features)
+		* [Contract Engine](#contract-engine)
+		* [Publisher Servers](#publisher-servers)
+		* [Extended URI](#extended-uri)
+		* [Proofmarshal Integration](#proofmarshal-integration)
+		* [Lightning Network Integration](#lightning-network-integration)
+	* [Structure](#structure)
+		* [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
+		* [Proofs](#proofs)
+		* [Color Addition](#color-addition)
+* [Exemplified Process Description](#exemplified-process-description)
+	* [Basic Asset Issuance](#basic-asset-issuance)
+	* [On-chain Asset Transfer](#on-chain-asset-transfer)
+-- the following points are to be expanded --
+	* [Lightning Asset Transfer](#lightning-asset-transfer)
+	* [Proofmarshal Asset Transfer](#proofmarshal-asset-transfer)
+	* [Basic Asset Redeeming](#basic-asset-redeeming)
+	* [Basic Asset Re-issuance](#basic-asset-re-issuance)
+* [Reference Implementation](#reference-implementation)
+* [Requirements Check](#requirements-check)
+	* [Standardness check](#standardness-check)
+	* [Auditability check](#auditability-check)
+	* [Blindness/Federation check](#blindnessfederation-check)
+	* [Full Decentralization check](#full-decentralization-check)
+* [Future Evolutions](#future-evolutions)
+	* [Advanced Scripts](#advanced-scripts)
+		* [Multiple Asset Management](#multiple-asset-management)
+		* [Simplified Issuance](#simplified-issuance)
+		* [Issuer Fees](#issuer-fees)
+	* [DBTEE Contracts](#dbtee-contracts)
+	* [BOLT-based Exchange](#bolt-based-exchange)
+	* [Asset-enabled Side-chains](#asset-enabled-side-chains)
+* [Explanatory Notes](#explanatory-notes)
+* [Open Points](#open-points)
+* [Copyright](#Copyright)
+
 ## Abstract
 This document contains the technical specification for the proposed “RGB” protocol for the issuance, the storage and the transfer of blockchain-based digital assets. The protocol aims to provide a standard to perform the aforementioned goal in a way that overcomes the major shortcomings of previous attempts. The protocol is based on Bitcoin, and it’s aimed to provide an acceptable level of scalability, confidentiality, and standardness.
 ## Motivation
@@ -31,7 +79,7 @@ A new, better proposal for a blockchain-based asset management standard should s
 * We call **“redemption”** the action, performed by one or more senders, of transferring tokens to their initial issuer in order to redeem (leveraging autonomous mechanisms or legal claims) the rights associated with the correspondent asset contract.
 * We call **“re-issuance”** the action, performed by one or more senders, of transferring tokens to the initial issuer in order to have them issued again on a new public contract, possibly linked with the previous one.
 
-### Main features
+### Main Features
 #### Contract Engine
 In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to run transactions against the meta-script contained in any public contract, testing deterministically the compliance with the contract. The meta-script should allow an easy versioning to build and manage expansions, dialect, upgrades.
 #### Publisher Servers
@@ -147,13 +195,13 @@ In the case of a multisig address spending funds **all** the signatures must inc
 ## Reference Implementation
 [expand]
 ## Requirements Check
-### Standardness
+### Standardness Check
 [expand]
-### Auditability
+### Auditability Check
 [expand]
-### Blindness/Federation
+### Blindness/Federation Check
 [expand]
-### Full Decentralization
+### Full Decentralization Check
 [expand]
 ## Future Evolutions
 ### Advanced Scripts
