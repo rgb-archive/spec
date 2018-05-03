@@ -1,11 +1,59 @@
 # RGB Protocol Specification V0.21
+* [Abstract](#abstract)
+* [Motivation](#motivation)
+	* [Digital Assets](#digital-assets)
+	* [Blockchain-based Assets?](#blockchain-based-assets)
+		* [Full Decentralization](#full-decentralization)
+		* [Blindness/Federation](#blindnessfederation)
+		* [Auditability](#auditability)
+		* [Standardness](#standardness)
+	* [Existent Alternatives](#existent-alternatives)
+* [General Design](#general-design)
+	* [General Goals](#general-goals)
+	* [Initial Definitions](#initial-definitions)
+	* [Main Features](#main-features)
+		* [Contract Engine](#contract-engine)
+		* [Publisher Servers](#publisher-servers)
+		* [Extended URI](#extended-uri)
+		* [Proofmarshal Integration](#proofmarshal-integration)
+		* [Lightning Network Integration](#lightning-network-integration)
+	* [Structure](#structure)
+		* [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
+		* [Proofs](#proofs)
+		* [Color Addition](#color-addition)
+* [Exemplified Process Description](#exemplified-process-description)
+	* [Basic Asset Issuance](#basic-asset-issuance)
+	* [On-chain Asset Transfer](#on-chain-asset-transfer)
+-- the following points are to be expanded --
+	* [Lightning Asset Transfer](#lightning-asset-transfer)
+	* [Proofmarshal Asset Transfer](#proofmarshal-asset-transfer)
+	* [Basic Asset Redeeming](#basic-asset-redeeming)
+	* [Basic Asset Re-issuance](#basic-asset-re-issuance)
+* [Reference Implementation](#reference-implementation)
+* [Requirements Check](#requirements-check)
+	* [Standardness check](#standardness-check)
+	* [Auditability check](#auditability-check)
+	* [Blindness/Federation check](#blindnessfederation-check)
+	* [Full Decentralization check](#full-decentralization-check)
+* [Future Evolutions](#future-evolutions)
+	* [Advanced Scripts](#advanced-scripts)
+		* [Multiple Asset Management](#multiple-asset-management)
+		* [Simplified Issuance](#simplified-issuance)
+		* [Issuer Fees](#issuer-fees)
+	* [DBTEE Contracts](#dbtee-contracts)
+	* [BOLT-based Exchange](#bolt-based-exchange)
+	* [Asset-enabled Side-chains](#asset-enabled-side-chains)
+* [Explanatory Notes](#explanatory-notes)
+* [Open Points](#open-points)
+* [Copyright](#Copyright)
+
 ## Abstract
 This document contains the technical specification for the proposed “RGB” protocol for the issuance, the storage and the transfer of blockchain-based digital assets. The protocol aims to provide a standard to perform the aforementioned goal in a way that overcomes the major shortcomings of previous attempts. The protocol is based on Bitcoin, and it’s aimed to provide an acceptable level of scalability, confidentiality, and standardness.
 ## Motivation
 ### Digital Assets
 There is a continuous and growing interest for digital assets somehow representing a proxy for securities (shares, bonds, deposits, royalties, voting rights, IOUs for physical goods, etc.), utilities (vouchers, coupons, fidelity points, casino tokens, discount rights, presell receipts, payment alternatives, etc.) or collectibles. Traditional ways to issue and transfer assets are usually slow, expensive, inefficient, and present a lot of friction, both technological and regulatory. Nowadays an increasing number of businesses, startups, financial institutions or even individuals are willing to issue digital assets across multiple use-cases.
 ### Blockchain-based Assets?
-While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity). 
+While centralized and trust-based models for digital asset management are still, in many cases, the most rational option, there is a growing interest for the application to this problem of the same kind of “blockchain” technology that powers Bitcoin (a purely peer-to-peer, decentralized, trustless, permissionless protocol born to manage the homonym digital commodity).
 
 Much of this interest is driven by marketing reasons in the context of the current hype cycle, as blockchain-based strategies often result useless (in many digital asset schemes there is already unavoidable need for a central counterparty) and even harmful (a blockchain-based design is usually more expensive, slow, inefficient, and privacy-lacking if compared to centralized existent alternatives, its implementation is usually more complex, challenged by new and not well understood security issues and it requires skills not common in the market, while providing “features” that are often undesirable for business and/or regulatory reasons, like pseudo-anonymity, censorship-resistance, complete openness, etc.). There could be, anyway, some legit reasons to use such a design.
 #### Full Decentralization
@@ -31,7 +79,7 @@ A new, better proposal for a blockchain-based asset management standard should s
 * We call **“redemption”** the action, performed by one or more senders, of transferring tokens to their initial issuer in order to redeem (leveraging autonomous mechanisms or legal claims) the rights associated with the correspondent asset contract.
 * We call **“re-issuance”** the action, performed by one or more senders, of transferring tokens to the initial issuer in order to have them issued again on a new public contract, possibly linked with the previous one.
 
-### Main features
+### Main Features
 #### Contract Engine
 In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to run transactions against the meta-script contained in any public contract, testing deterministically the compliance with the contract. The meta-script should allow an easy versioning to build and manage expansions, dialect, upgrades.
 #### Publisher Servers
@@ -62,11 +110,11 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 * a list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO. 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
 * a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
-In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address. 
+In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
 
 **[note on safety of mixing Bitcoin and RGB addresses]**
 
@@ -126,7 +174,7 @@ The payer also produces a new proof containing:
 * A list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* 
+	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based*
 * Meta-script-related transaction meta-data
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
@@ -147,13 +195,13 @@ In the case of a multisig address spending funds **all** the signatures must inc
 ## Reference Implementation
 [expand]
 ## Requirements Check
-### Standardness
+### Standardness Check
 [expand]
-### Auditability
+### Auditability Check
 [expand]
-### Blindness/Federation
+### Blindness/Federation Check
 [expand]
-### Full Decentralization
+### Full Decentralization Check
 [expand]
 ## Future Evolutions
 ### Advanced Scripts
