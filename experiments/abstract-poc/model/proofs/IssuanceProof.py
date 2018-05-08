@@ -25,6 +25,8 @@ class IssuanceProof(Proof):
         if not self.utxo.spent:
             raise Exception('Proof committed to unspent UTXO {}'.format(self.utxo))
 
+        # TODO: verify the commitment to this proof
+
         # Make sure that:
         # - The contract is valid
         # - The contract issuance utxo matches this proof's one
