@@ -30,41 +30,55 @@ class CrowdsaleBuyProof(Proof):
         if not self.utxo.spent:
             raise Exception('Proof committed to unspent UTXO {}'.format(self.utxo))
 
-        # Make sure that: (THIS ENTIRE COMMENT IS WRONG, TODO!)
-        # - The contract is valid
-        # - The proof has no inputs
-        # - The proof has only one output.
-        # - The only output matches the token id from the contract
+        # TODO: verify the commitment to this proof
 
         def get_bought_tokens_and_change(tx: Transaction):
+            if len(tx.utxos) != 2:
+                raise Exception('Found more than two outputs in a CrowdsaleBuyProof tx')
+
+            # Iterate through all the outputs and accumulate how much has been paid to the
+            # crowdsale's deposit address provided in the contract.
             payed_to_crowdsale = 0
             for utxo in tx.utxos:
                 if utxo.to == self.contract.deposit_address:
                     payed_to_crowdsale += utxo.amount
 
+            # Calculate how many token has been bought and how many satoshis are left as change
             token_bought = math.floor(payed_to_crowdsale / self.contract.price_sat)
 
             return token_bought, payed_to_crowdsale - (token_bought * self.contract.price_sat)
 
         def scan_blocks():
+            # Iterate through all the blocks in the range [contract.from_block, contract.to_block]
+            # to count how many tokens has been bought.
             remaining_tokens = self.contract.total_supply
 
+            # IMPORTANT NOTE: here we are using the order in which transactions are pushed into a block.
+            # This means that transactions pushed before have some kind of priority on transactions pushed
+            # later when we have to decide who is going to get the tokens and who is going to get the refund.
+            # See https://github.com/BHBNETWORK/RGB/issues/18 to learn more.
             for blocks in self.blockchain.get_range(self.contract.from_block, self.contract.to_block):
                 for tx in blocks.get_transaction_to(self.contract.deposit_address):
                     # Reject transactions which don't have exactly two outputs
+                    # This is necessary because we have to agree on which output will receive the
+                    # newly-bought tokens. With two outputs it's pretty easy:
+                    # one is paying to the crowdsale address while the other will receive all the tokens.
+                    # Once again, see https://github.com/BHBNETWORK/RGB/issues/18 to learn more.
                     if len(tx.utxos) != 2:
                         continue
 
                     tokens, change = get_bought_tokens_and_change(tx)
 
-                    can_buy = tokens if tokens < remaining_tokens else remaining_tokens
+                    # Make sure that we are not exceeding the max supply of tokens. We can buy `remaning_tokens` at most
+                    can_buy = min(tokens, remaning_tokens)
                     change += self.contract.price_sat * (tokens - can_buy)
 
-                    if tx.txid == self.utxo.txid:  # our transaction
+                    if tx.txid == self.utxo.txid:  # our transaction, return how many tokens we can buy
                         return can_buy, change
 
                     remaining_tokens -= can_buy
 
+        # Check how many tokens we are allowed to buy
         user_token_bought, user_change = scan_blocks()
 
         # ------------
@@ -78,6 +92,7 @@ class CrowdsaleBuyProof(Proof):
         token_outputs: List[RGBOutput] = []
         change_outputs: List[RGBOutput] = []
 
+        # Iterate the RGBOutput of this proof
         for output in self.outputs:
             if output.token_id == self.contract.get_token_id():
                 token_outputs.append(output)
@@ -91,6 +106,7 @@ class CrowdsaleBuyProof(Proof):
 
         # ------------
 
+        # Check that everything matches
         if require_token_output:
             if len(token_outputs) == 0:
                 raise Exception('Missing token output in CrowdsaleBuyProof committed to {}'.format(self.utxo))
@@ -106,6 +122,11 @@ class CrowdsaleBuyProof(Proof):
                 raise Exception(
                     'Invalid change amount (got {}, expected {}) in CrowdsaleBuyProof committed to {}'.format(
                         total_change_amount, user_change, self.utxo))
+
+        # Make sure that:
+        # - The contract is valid
+        # - We have no inputs
+        # - The transaction committing to this proof has been confirmed within the range of blocks specified in the contract
 
         return self.contract.verify() and \
                len(self.inputs_proof) == 0 and \
