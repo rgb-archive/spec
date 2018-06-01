@@ -81,7 +81,11 @@ A new, better proposal for a blockchain-based asset management standard should s
 
 ### Main Features
 #### Contract Engine
-In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to run transactions against the meta-script contained in any public contract, testing deterministically the compliance with the contract. The meta-script should allow an easy versioning to build and manage expansions, dialect, upgrades.
+In order to be able to compose and verify asset transactions related to a specific contract, RGB-compliant wallets must include a software module capable to analyze contracts and transactions in order to deterministically verify the compliance with the constraints specified by the *kind* of contract being used.
+
+Different contract "blueprints" are defined in this specification, allowing RGB to support in a highly modular way multiple different *kinds* of contracts with different, predefined, behaviors.
+
+Together with some very specific, "popular", contract blueprints (which should cover most of the use-cases), there's one more general purpose blueprint that embeds a meta-script executor, which allows very complex contract to be created.
 #### Publisher Servers
 The scheme requires additional agreed-upon third parties which store the chain of encrypted proofs and accept related queries, possibly in a "Bloom filter" way to increase privacy (false positive can be added randomly in order to maintain even more privacy). In the context of an issued asset, these **"publisher"** servers could be mantained by the issuer itself. More generally, they can be mantained individually by the receivers, or by one or many independent third parties selected from a set defined by the receivers. The storage and the trasmission of the proofs could be achieved via a decentralized sistem (BitTorrent, IPFS, Siacoin, ecc.), but the censorship-resistance gains do not compensate for the increased complexity. Moreover, the Proofmarshal Integration (see below) requires a centralized third party anyway, which could be effectevely leveraged for the Lightning Network Integration (see below) as well.
 #### Extended URI
@@ -111,7 +115,7 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 	* color of the token being transacted
 	* amount being transacted
 	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
-* a free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (“meta-script");
+* an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
@@ -125,7 +129,6 @@ This feature should enhance the anonymity set of asset users, making chain analy
 ## Exemplified Process Description
 The following Process Description assumes:
 
-* the use of Version 1.0 of RGB Meta-scrip;
 * one-2-one transfers after the issuance (many-to-many transfers are possible);
 * single-asset issuance and transfers (multi-asset issuance and transfers are possible);
 ### Basic Asset Issuance
@@ -134,28 +137,26 @@ The following Process Description assumes:
 
 ```c
 {
+	"kind": 0x01 // The kind of contract we are creating, in this case a generic issuance
 	"version":{
-		// RGB Meta-script version - https://semver.org
+		// Version of this contract kind to use - https://semver.org
 		"major": <Integer>, // version when you make incompatible API changes
 		"minor": <Integer>, // version when you add functionality in a backwards-compatible manner
 		"patch": <Integer>  // version when you make backwards-compatible bug fixes
 	},
 	"title": <String>, // Title of the asset contract
 	"description": <String>, // Description of possible reediming actions and non-script conditions
-	"issuance_date": <Date>, // Date of issuance
-	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract
-	"owner_utxo": <String>, // The UTXO which will receive all the issued token
+	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract,
 	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
-	"re-issuance_url": <String>, // Url for the contract of which this contract is the reissuance (optional)
-	"re-issuance_utxo": <String>, // The UTXO which will need to be spent in order to make a re-issuance (optional)
-	"next_re-issuance_enabled": <Boolean>, // Flag to represent the possibility of reissuance
 	"total_supply": <Integer>, // Total supply in satoshi (1e-8)
 	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
 	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transfered together
+
+	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
 }
 ```
 
-2. The issuer spends the `issuance_utxo` with a commitment to this contract and publishes the contract, followed by the proofs, on the selected public channel.
+2. The issuer spends the `issuance_utxo` with a commitment to this contract and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
 
 ### On-chain Asset Transfer
 1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
@@ -168,21 +169,21 @@ The following Process Description assumes:
      * Colored Output 1: address of the Nth receiver (if performing an *Address-Based* transaction)
      * Colored Output 2: (optional) another address of the payer for the colored (up to capacity) and non-colored change
 
-The payer also produces a new proof containing:
+The payer also produces a new transfer proof containing:
 
-* RGB Meta-script version
 * A list of triplets made with:
-	* color of the token being transacted
-	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based*
-* Meta-script-related transaction meta-data
-* The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
+	* color of the token being transacted;
+	* amount being transacted;
+	* either the hash of an UTXO in the form `SHA256(TX_HASH:OUTPUT_INDEX)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
+* Signature(s) of the proof using the same pubkeys specified in the Bitcoin `scriptPubKey`;
+* The parameter(s) used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**;
+* Optional meta-script-related meta-data;
 
 This proof is simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
-Every signature performed in the transaction **must** include a commitment to the proof produced.
+Every signature performed in the transaction **should** include a commitment to the proof produced.
 
-In the case of a multisig address spending funds **all** the signatures must include the same commitment.
+In the case of a multisig address spending funds at least one of the signatures **must** include a commitment to the proof.
 
 ### Lightning Asset Transfer
 [expand]
