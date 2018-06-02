@@ -178,7 +178,7 @@ The payer also produces a new proof containing:
 * Meta-script-related transaction meta-data
 * The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
-This proof is simmetrically encrypted using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
+This proof is simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
 Every signature performed in the transaction **must** include a commitment to the proof produced.
 
