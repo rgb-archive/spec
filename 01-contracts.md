@@ -1,12 +1,20 @@
 # RGB Protocol Specification #01: Contracts and Proofs
 
+* [Contracts](#contracts)
+  * [Entity Structure](#entity-structure)
+  * [Blueprints and versioning](#blueprints-and-versioning)
+    * [Simple issuance](#simple-issuance)
+    * [Crowdsale](#crowdsale)
+* [Proofs](#proofs)
+  * [Transfer proofs](#transfer-proofs)
+  * [Special proofs](#special-proofs)
 * [Structure](#structure)
-	* [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
-	* [Proofs](#proofs)
-	* [Color Addition](#color-addition)
+  * [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
+  * [RgbOutPoint](#rgboutpoint)
 * [Exemplified Process Description](#exemplified-process-description)
-	* [Basic Asset Issuance](#basic-asset-issuance)
-	* [On-chain Asset Transfer](#on-chain-asset-transfer)
+  * [Basic Asset Issuance](#basic-asset-issuance)
+  * [On-chain Asset Transfer](#on-chain-asset-transfer)
+  * [Color Addition](#color-addition)
 
 ## Contracts
 
