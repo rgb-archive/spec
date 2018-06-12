@@ -18,11 +18,11 @@
 
 ## Contracts
 
-Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique token with a specific set of charateristics, like the total supply, dust limit, etc.
+Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of charateristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
 
-Every token is identified by the `token_id`, which is the hash of some fields of the contracts (pretty much everything but signatures, to create a "witness" area).
+Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts (pretty much everything but signatures, to create a "witness" area).
 
-Many different *kinds* (or *blueprints*) of contracts exist, allowing the user to choose the rules that will define how the token is issued and, later, transferred. **Every contract kind has a specific 1-byte-long unique identifier**, which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time. Every blueprint also has an independent versioning system, in order to make the entire project even more "modular" (See [issue #23 on GitHub](https://github.com/rgb-org/spec/issues/23)).
+Many different *kinds* (or *blueprints*) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. **Every contract kind has a specific 1-byte-long unique identifier**, which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time. Every blueprint also has an independent versioning system, in order to make the entire project even more "modular" (See [issue #23 on GitHub](https://github.com/rgb-org/spec/issues/23)).
 
 ### Entity Structure
 
@@ -37,7 +37,7 @@ Contracts are ideally made by two parts:
 
 **Version 1.0**
 
-This blueprint allows to mint `total_supply` token and immediately send them to `owner_utxo`.
+This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
 
 The additional fields in the body are:
 
@@ -47,7 +47,7 @@ The additional fields in the body are:
 
 **Version 1.0**
 
-This blueprint allows to set-up a crowdsale, to sell token at a specified price up to the `total_supply`. This contract actually creates two different token with different `token_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the token sale. Change tokens have a fixed 1-to-1-satoshi exchange rate.
+This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
 
 The additional fields in the body are:
 
@@ -58,7 +58,7 @@ The additional fields in the body are:
 
 ## Proofs
 
-Proofs, as the name implies, are entities that *prove* that some requirements are met. Proofs allow transfer of tokens by proving the ownership of them and "connect" to contracts, by fulfilling all the conditions set in the contract itself.
+Proofs, as the name implies, are entities that *prove* that some requirements are met. Proofs allow transfer of assets by proving the ownership of them and "connect" to contracts, by fulfilling all the conditions set in the contract itself.
 
 Like contracts, proofs have an header and a body, where the common and "special" fields are stored respectively.
 
