@@ -1,7 +1,7 @@
 # About RGB
 The RGB Project is a completely free, open-source, no-profit and community-oriented effort, promoted by the BHB Network and aimed at the development of standards and best practices to issue, transmit and store "Bitcoin-based non-bitcoin" assets.
 Motivations and rationale for this effort are outlined in the [Introduction document](00-introduction.md).
-Basic information about the project can be provided by the developers in the [Telegram Group](https://t.me/joinchat/AgBz-Q-r2xoeQeZLsWqFUA).
+Basic information about the project can be provided by the developers in the [Telegram Group](https://t.me/rgbtelegram).
 
 # RGB Resource Map
 The present repository contains, along with an [Introduction](00-introduction.md) to the RGB Project and some thoughts concerning its possible [Future Evolution](06-future-evolution.md), the specifications for the RGB standard proposal and its different modules, while the source code for the reference implementation of each module is contained in a specific repository within this same [GitHub Organization](https://github.com/rgb-org).
