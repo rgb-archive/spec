@@ -1,5 +1,5 @@
 # About RGB
-The RGB Project is a completely free, open-source, no-profit and community-oriented effort, promoted by the BHB Network and aimed at the development of standards and best practices to issue, transmit and store "Bitcoin-based non-bitcoin" assets.
+The RGB Project is a completely free, open-source, non-profit and community-oriented effort, promoted by the BHB Network and aimed at the development of standards and best practices to issue, transmit and store "Bitcoin-based non-bitcoin" assets.
 Motivations and rationale for this effort are outlined in the [Introduction document](00-introduction.md).
 Basic information about the project can be provided by the developers in the [Telegram Group](https://t.me/joinchat/AgBz-Q-r2xoeQeZLsWqFUA).
 
