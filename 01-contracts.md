@@ -2,9 +2,10 @@
 
 * [Contracts](#contracts)
   * [Entity Structure](#entity-structure)
+    * [Header](#header)
   * [Blueprints and versioning](#blueprints-and-versioning)
-    * [Simple issuance](#simple-issuance)
-    * [Crowdsale](#crowdsale)
+    * [Simple issuance: `0x01`](#simple-issuance-0x01)
+    * [Crowdsale: `0x02`](#crowdsale-0x02)
 * [Proofs](#proofs)
   * [Transfer proofs](#transfer-proofs)
   * [Special proofs](#special-proofs)
