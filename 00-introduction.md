@@ -1,5 +1,4 @@
 # RGB Protocol Specification #00: Introduction
-* [Abstract](#abstract)
 * [Motivation](#motivation)
 	* [Digital Assets](#digital-assets)
 	* [Blockchain-based Assets?](#blockchain-based-assets)
@@ -18,8 +17,6 @@
 		* [Proofmarshal Integration](#proofmarshal-integration)
 		* [Lightning Network Integration](#lightning-network-integration)
 
-## Abstract
-This document contains the technical specification for the proposed “RGB” protocol for the issuance, the storage and the transfer of blockchain-based digital assets. The protocol aims to provide a standard to perform the aforementioned goal in a way that overcomes the major shortcomings of previous attempts. The protocol is based on Bitcoin, and it’s aimed to provide an acceptable level of scalability, confidentiality, and standardness.
 ## Motivation
 ### Digital Assets
 There is a continuous and growing interest for digital assets somehow representing a proxy for securities (shares, bonds, deposits, royalties, voting rights, IOUs for physical goods, etc.), utilities (vouchers, coupons, fidelity points, casino tokens, discount rights, presell receipts, payment alternatives, etc.) or collectibles. Traditional ways to issue and transfer assets are usually slow, expensive, inefficient, and present a lot of friction, both technological and regulatory. Nowadays an increasing number of businesses, startups, financial institutions or even individuals are willing to issue digital assets across multiple use-cases.
