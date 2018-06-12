@@ -31,11 +31,27 @@ Contracts are ideally made by two parts:
 * Header - the area that contains all the fields common among every contract kind
 * Body - the area that contains blueprint-specific fields
 
+#### Header
+
+The header contains the following fields:
+
+* `title`: Title of the asset contract
+* `description`: Description of the asset contract
+* `contract_url`: Unique url for the publication of the contract and the light-anchors
+* `issuance_utxo`: The UTXO which will be spent with a commitment to this contract to "deploy" it
+* `network`: The Bitcoin network in use (mainnet, testnet)
+* `total_supply`: Total supply in satoshi (1e-8)
+* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
+* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
+* `signatures`: Array of ECDSA signatures made with the public keys found in the `issuance_utxo`'s *scriptPubKey*
+* `tx_commitment_r `: Array of elliptic curve points necessary to verify the commitment to the contract in the signatures
+* `version`: 16-bit number representing version of the blueprint used
+
 ### Blueprints and versioning
 
-#### Simple issuance
+#### Simple issuance: `0x01`
 
-**Version 1.0**
+**Version `0x0008`**
 
 This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
 
@@ -43,9 +59,9 @@ The additional fields in the body are:
 
 * `owner_utxo`: the UTXO which will receive all the tokens
 
-#### Crowdsale
+#### Crowdsale: `0x02`
 
-**Version 1.0**
+**Version `0x0008`**
 
 This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
 
