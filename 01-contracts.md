@@ -107,12 +107,25 @@ Every contract blueprint needs a special "adaptor" proofs, that *proves* that th
 
 RGB allows the sender of a colored transaction to transfer the ownership of any asset in two slightly different ways:
 
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` in order to increase the privacy of the receiver.
 * **Address-Based** if the receiver prefers to receive the colored UTXO itself;
-* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256(TX_HASH:OUTPUT_INDEX)` in order to increase the privacy of the receiver.
 
 ### RgbOutPoint
 
-[explain]
+`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be a `Sha256d` entity when used in an UTXO-based transaction, to encode the double SHA256 of the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
+
+When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
+
+For example, the byte sequence:
+
+```
+01 49CAFDBC 3E9133A7 5B411A3A 6D705DCA 2E9565B6 60123B65 35BABB75 67C28F02
+```
+
+is decoded as:
+
+* `0x01` = UTXO-based transaction
+* `...` = SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)
 
 ## Exemplified Process Description
 The following Process Description assumes:
@@ -162,7 +175,7 @@ The payer also produces a new transfer proof containing:
 * A list of triplets made with:
 	* color of the token being transacted;
 	* amount being transacted;
-	* either the hash of an UTXO in the form `SHA256(TX_HASH:OUTPUT_INDEX)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
+	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
 * Signature(s) of the proof using the same pubkeys specified in the Bitcoin `scriptPubKey`;
 * The parameter(s) used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**;
 * Optional meta-script-related meta-data;
