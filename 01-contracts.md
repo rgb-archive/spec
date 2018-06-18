@@ -136,19 +136,15 @@ The following Process Description assumes:
 ```c
 {
 	"kind": 0x01 // The kind of contract we are creating, in this case a generic issuance
-	"version":{
-		// Version of this contract kind to use - https://semver.org
-		"major": <Integer>, // version when you make incompatible API changes
-		"minor": <Integer>, // version when you add functionality in a backwards-compatible manner
-		"patch": <Integer>  // version when you make backwards-compatible bug fixes
-	},
+	"version": 0x0008 // Version of this contract kind to use,
 	"title": <String>, // Title of the asset contract
 	"description": <String>, // Description of possible reediming actions and non-script conditions
 	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract,
 	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
 	"total_supply": <Integer>, // Total supply in satoshi (1e-8)
 	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
-	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transfered together
+	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transfered together,
+	"network": "BITCOIN", // The network in use
 
 	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
 }
