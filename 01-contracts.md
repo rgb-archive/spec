@@ -175,7 +175,7 @@ The payer also produces a new transfer proof containing:
 	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
 * Optional meta-script-related meta-data;
 
-The proof is hashed and included in **the first** OP_RETURN output created in the transaction.
+The proof is hashed and the hash is included in **the first** OP_RETURN output created in the transaction.
 
 This proof is also simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
