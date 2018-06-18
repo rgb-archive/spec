@@ -21,7 +21,7 @@
 
 Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of charateristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
 
-Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts (pretty much everything but signatures, to create a "witness" area).
+Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts.
 
 Many different *kinds* (or *blueprints*) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. **Every contract kind has a specific 1-byte-long unique identifier**, which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time. Every blueprint also has an independent versioning system, in order to make the entire project even more "modular" (See [issue #23 on GitHub](https://github.com/rgb-org/spec/issues/23)).
 
@@ -39,13 +39,11 @@ The header contains the following fields:
 * `title`: Title of the asset contract
 * `description`: Description of the asset contract
 * `contract_url`: Unique url for the publication of the contract and the light-anchors
-* `issuance_utxo`: The UTXO which will be spent with a commitment to this contract to "deploy" it
+* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
 * `network`: The Bitcoin network in use (mainnet, testnet)
 * `total_supply`: Total supply in satoshi (1e-8)
 * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
 * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
-* `signatures`: Array of ECDSA signatures made with the public keys found in the `issuance_utxo`'s *scriptPubKey*
-* `tx_commitment_r `: Array of elliptic curve points necessary to verify the commitment to the contract in the signatures
 * `version`: 16-bit number representing version of the blueprint used
 
 ### Blueprints and versioning
@@ -89,7 +87,6 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 	* amount being transacted
 	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
 * an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
-* The parameters used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**
 
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
 
@@ -176,15 +173,11 @@ The payer also produces a new transfer proof containing:
 	* color of the token being transacted;
 	* amount being transacted;
 	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
-* Signature(s) of the proof using the same pubkeys specified in the Bitcoin `scriptPubKey`;
-* The parameter(s) used to create the signature, in order to allow the payee and the following receivers of these tokens to verify the commitment **[expand]**;
 * Optional meta-script-related meta-data;
 
-This proof is simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
+The proof is hashed and included in **the first** OP_RETURN output created in the transaction.
 
-Every signature performed in the transaction **should** include a commitment to the proof produced.
-
-In the case of a multisig address spending funds at least one of the signatures **must** include a commitment to the proof.
+This proof is also simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
 ### Color Addition
 [expand]
