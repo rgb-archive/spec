@@ -29,13 +29,36 @@ In order to ensure immutability and prevent double spend, it's necessary to stro
 
 In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
 
+Every contract MUST be deployed using the `OP_RETURN` scheme, independently from which `commitment_scheme` is set.
+
+Every later proof MUST follow the scheme chosen in the contract.
+
 ### OP_RETURN
 
-[describe]
+A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
+
+1. There's at least one `OP_RETURN` output
+2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
 
 ### Pay-to-contract
 
-[describe]
+A transaction committing to a proof using the `Pay-to-contract` scheme is considered valid if:
+
+1. The first output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
+2. The ECDSA public key must be tweaked using the method described below
+
+#### Public key tweaking
+
+The tweaking procedure has been previously described in many publications, such as [Blockstream's "Sidechains", in Appendix A](https://www.blockstream.com/sidechains.pdf).
+
+It consists of a few steps (some integrity checks have been skipped, since they are less relevant):
+
+1. Generate a random, 128-bit `nonce`
+2. Compute `tweak = hmac_sha256(key=original_pubkey, data=(nonce||double_sha256(entity)))`
+3. Compute `new_pub_key = original_pubkey + G * tweak`
+4. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
+
+In order to be able to spend the output later, the same procedure should be applied to the private key.
 
 ## Contracts
 
