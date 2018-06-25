@@ -16,6 +16,11 @@ To maximize interoperability with the BOLT specification, the same transport pro
 
 ## Protocol
 
+The message format is, once again, inspired by [#BOLT 1](https://github.com/lightningnetwork/lightning-rfc/blob/master/01-messaging.md#lightning-message-format): 
+
+1. `type`: a 2-byte big-endian field indicating the type of message
+2. `payload`: a variable-length payload that comprises the remainder of the message and that conforms to a format matching the `type`
+
 ### The `push` message
 
 Pushes a blob to the server
