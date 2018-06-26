@@ -1,5 +1,14 @@
 # RGB Protocol Specification #03: Networking
 
+* [Exchange of proofs](#exchange-of-proofs)
+* [Transport layer](#transport-layer)
+* [Protocol](#protocol)
+  * [The `push` message](#the-push-message)
+  * [The `get_by_pk_hash` message](#the-get_by_pk_hash-message)
+  * [The `get_by_txid` message](#the-get_by_txid-message)
+  * [The `blob` message](#the-blob-message)
+* [Notes](#notes)
+
 ## Exchange of proofs
 
 The networking section describes how wallets should exchange chain of proofs when sending on-chain RGB transactions. 
