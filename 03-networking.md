@@ -34,7 +34,7 @@ Pushes a blob to the server
 
 ### The `get_by_pk_hash` message
 
-Returns (if found) the blob matching a pubkey hash
+Asks for the blob(s) matching a pubkey hash
 
 1. type: 2080 (`get_by_pk_hash`)
 2. data:
@@ -42,11 +42,22 @@ Returns (if found) the blob matching a pubkey hash
 
 ### The `get_by_txid` message
 
-Returns (if found) the blob matching a txid
+Asks for the blob matching a txid
 
-1. type: 2080 (`get_by_txid`)
+1. type: 2081 (`get_by_txid`)
 2. data:
     * [`32`:`txid `]
+
+### The `blob` message
+
+Returns the blob(s) found (or length 0 if none are found)
+
+1. type: 2096 (`blob`)
+2. data:
+    * [`2`:`len`]
+    * [`len`:
+        * [`compactSize uint`:`size`]
+        * [`size`:`data`]
 
 ## Notes
 
