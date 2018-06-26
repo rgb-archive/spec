@@ -70,4 +70,4 @@ Returns the blob(s) found (or length 0 if none are found)
 
 ## Notes
 
-1. Theoretically, by tweaking the [handshake initialization](), the "Act Three" could be entirely skipped, but it is being kept in order to allow future developments (like authentication of RGB wallets using their static public key) and maximize compatibility with LN.
+1. Theoretically, by tweaking the [handshake initialization](https://github.com/lightningnetwork/lightning-rfc/blob/master/08-transport.md#handshake-state-initialization), the "Act Three" could be entirely skipped, but it is being kept in order to allow future developments (like authentication of RGB wallets using their static public key) and maximize compatibility with LN.
