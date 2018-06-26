@@ -7,6 +7,8 @@
   * [The `get_by_pk_hash` message](#the-get_by_pk_hash-message)
   * [The `get_by_txid` message](#the-get_by_txid-message)
   * [The `blob` message](#the-blob-message)
+* [Privacy concerns](#privacy-concerns)
+  * [Connecting through Tor](#connecting-through-tor)
 * [Notes](#notes)
 
 ## Exchange of proofs
@@ -67,6 +69,16 @@ Returns the blob(s) found (or length 0 if none are found)
     * [`len`:
         * [`compactSize uint`:`size`]
         * [`size`:`data`]
+
+## Privacy concerns
+
+This first draft of the networking protocol has voluntarily been kept very simple and, as a concequence, very open to privacy "spoofing" by the server: even though all the blobs will be encrypted with the `dark-tag` specified by the payee, the server could still link uploading clients (pushing a particular blob) with clients downloading the same blob.
+
+Some proposals inspired by [BIP #158](https://github.com/bitcoin/bips/blob/master/bip-0158.mediawiki#golomb-coded-set-multi-match) and Bloom filters are being formalized but proposals and contributions are welcome!
+
+### Connecting through Tor
+
+While probably superfluous it's still important to point out that, even in the future, when a much stronger protocol will be activated, every server SHOULD be reachable via a Tor hidden service, to at least allow clients to hide their IP addresses.
 
 ## Notes
 
