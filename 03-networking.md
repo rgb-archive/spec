@@ -1,4 +1,4 @@
-# RGB Protocol Specification #03: Networking
+# RGB Protocol Specification #03: Networking - Bifröst
 
 * [Exchange of proofs](#exchange-of-proofs)
 * [Transport layer](#transport-layer)
@@ -16,6 +16,42 @@
 The networking section describes how wallets should exchange chain of proofs when sending on-chain RGB transactions. 
 
 The process described here involves a set of trustless third-party servers, acting as a temporary "storage" server. The payer, after the creation of a new transfer proof and the broadcast of the corresponding Bitcoin tranasction, will upload the newly-created proof, together with the chain of proofs up to the contract, to the servers specified by the payee in its invoice (TODO: reference to wallet chapter).
+
+## Introduction
+
+We propose a method inspired by BIPs [157](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki) & [158](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki) (client-side filtering): the archive server will pack multiple blobs received into ideal "blocks", one for each block seen on the Bitcoin blockchain.
+
+## Structure
+
+Archive servers will have a static Bitcoin public key, which is going to be used by clients to detect/prevent MITM attacks and verify filer header signatures.
+
+### Filter Header
+
+The filter header is designed to be very small and easy to download/store, while at the same time provide some informations about the blobs contained in a block.
+
+Headers create a chain, which is obviously much "weaker" compared to Bitcoin's blockchain, but it still gives the client confidence in the fact that the chain has not been changed since the last time the headers have been synced.
+
+Fields included in the header are:
+
+* `1`:`type`
+* `32`:`previous_filter_hash`
+* `32`:`blob_merkle_root`
+* `32`:`bitcoin_block_hash`
+* `4`:`number_of_blobs`
+* `??`:`bit_array` `// DOES THIS MAKE SENSE?`
+* `??`:`signature`
+
+`type` is actually unused now, and MUST be always set to `0x01`. In will allow future expansion of this protocol.
+
+`bit_array` is used as a Bloom filter bit array: it allows clients to check if a specific blob *can* be inside the filter.
+
+`signature` is the signature of the header using the server's static public key.
+
+### Filter Block
+
+The filter block contains a "list" of the blobs coded in a GCS included in the block (not the blobs themselves). Blobs are indexed using a 16-byte-long hash, generally the first half of `double_sha(dark-tag)`.
+
+See [BIP 158](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki) for more details on the construction and querying of such data structures.
 
 ## Transport layer
 
@@ -36,49 +72,27 @@ The message format is, once again, inspired by [#BOLT 1](https://github.com/ligh
 
 Pushes a blob to the server
 
-1. type: 2064 (`push`)
+1. type: ?? (`push`)
 2. data:
-    * [`32`:`orig_pubkey_hash`]
-    * [`32`:`txid`]
+    * [`16`:`key`]
     * [`compactSize uint`:`len`]
     * [`len`:`data`]
 
-### The `get_by_pk_hash` message
+### The `getfheaders` message
 
-Asks for the blob(s) matching a pubkey hash
+### The `fheader` message
 
-1. type: 2080 (`get_by_pk_hash`)
-2. data:
-    * [`32`:`orig_pubkey_hash`]
+### The `getfilters` message
 
-### The `get_by_txid` message
+### The `filter` message
 
-Asks for the blob matching a txid
+### The `getblocks` message
 
-1. type: 2081 (`get_by_txid`)
-2. data:
-    * [`32`:`txid `]
+### The `block` message
 
-### The `blob` message
+### Tor support
 
-Returns the blob(s) found (or length 0 if none are found)
-
-1. type: 2096 (`blob`)
-2. data:
-    * [`2`:`len`]
-    * [`len`:
-        * [`compactSize uint`:`size`]
-        * [`size`:`data`]
-
-## Privacy concerns
-
-This first draft of the networking protocol has voluntarily been kept very simple and, as a concequence, very open to privacy "spoofing" by the server: even though all the blobs will be encrypted with the `dark-tag` specified by the payee, the server could still link uploading clients (pushing a particular blob) with clients downloading the same blob.
-
-Some proposals inspired by [BIP #158](https://github.com/bitcoin/bips/blob/master/bip-0158.mediawiki#golomb-coded-set-multi-match) and Bloom filters are being formalized but proposals and contributions are welcome!
-
-### Connecting through Tor
-
-While probably superfluous it's still important to point out that, even in the future, when a much stronger protocol will be activated, every server SHOULD be reachable via a Tor hidden service, to at least allow clients to hide their IP addresses.
+While probably superfluous it's still important to point out that it's strongly recommended for archive server to be reachable as Tor hidden services, to increase the privacy of both the payer and payee.
 
 ## Notes
 
