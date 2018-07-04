@@ -74,7 +74,7 @@ Since the total supply of an asset is hard-coded into the contract itself, there
 
 ### Proof-of-burn
 
-Token owners have the ability to *burn* tokens in order to claim or redeem any of the benefits [this sucks but I have no idea how to describe it :/] carried by their tokens.
+Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
 
 To do this, token owner have to send them to the `burn_address`, specified in the contract. The proof showing the transfer should then be published by the asset issuer itself [how?] to *prove* that the supply has been deflated.
 
