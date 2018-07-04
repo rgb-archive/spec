@@ -86,9 +86,9 @@ Pushes a blob to the server
 
 ### The `filter` message
 
-### The `getblocks` message
+### The `getfblocks` message
 
-### The `block` message
+### The `fblock` message
 
 ### Tor support
 
