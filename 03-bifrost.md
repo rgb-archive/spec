@@ -1,15 +1,20 @@
 # RGB Protocol Specification #03: Networking - Bifröst
 
 * [Exchange of proofs](#exchange-of-proofs)
+* [Introduction](#introduction)
+* [Structure](#structure)
+  * [Filter Header](#filter-header)
+  * [Filter Block](#filter-block)
 * [Transport layer](#transport-layer)
 * [Protocol](#protocol)
   * [The `push` message](#the-push-message)
-  * [The `get_by_pk_hash` message](#the-get_by_pk_hash-message)
-  * [The `get_by_txid` message](#the-get_by_txid-message)
-  * [The `blob` message](#the-blob-message)
-* [Privacy concerns](#privacy-concerns)
-  * [Connecting through Tor](#connecting-through-tor)
-* [Notes](#notes)
+  * [The `getfheaders` message](#the-getfheaders-message)
+  * [The `fheader` message](#the-fheader-message)
+  * [The `getfilters` message](#the-getfilters-message)
+  * [The `filter` message](#the-filter-message)
+  * [The `getfblocks` message](#the-getfblocks-message)
+  * [The `fblock` message](#the-fblock-message)
+* [Tor support](#tor-support)
 
 ## Exchange of proofs
 
@@ -38,18 +43,15 @@ Fields included in the header are:
 * `32`:`blob_merkle_root`
 * `32`:`bitcoin_block_hash`
 * `4`:`number_of_blobs`
-* `??`:`bit_array` `// DOES THIS MAKE SENSE?`
 * `??`:`signature`
 
 `type` is actually unused now, and MUST be always set to `0x01`. In will allow future expansion of this protocol.
-
-`bit_array` is used as a Bloom filter bit array: it allows clients to check if a specific blob *can* be inside the filter.
 
 `signature` is the signature of the header using the server's static public key.
 
 ### Filter Block
 
-The filter block contains a "list" of the blobs coded in a GCS included in the block (not the blobs themselves). Blobs are indexed using a 16-byte-long hash, generally the first half of `double_sha(dark-tag)`.
+The filter block contains a "list" of the blobs coded in a GCS included in the block (not the blobs themselves). Blobs are indexed using a 16-byte-long hash, the first half of `double_sha(dark-tag)`.
 
 See [BIP 158](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki) for more details on the construction and querying of such data structures.
 
@@ -80,17 +82,29 @@ Pushes a blob to the server
 
 ### The `getfheaders` message
 
+Asks a server for filter headers.
+
 ### The `fheader` message
+
+Sends filter headers.
 
 ### The `getfilters` message
 
+Asks a server for filter blocks.
+
 ### The `filter` message
+
+Sends filter blocks.
 
 ### The `getfblocks` message
 
+Asks the server for a block of blobs.
+
 ### The `fblock` message
 
-### Tor support
+Sends a block of blobs.
+
+## Tor support
 
 While probably superfluous it's still important to point out that it's strongly recommended for archive server to be reachable as Tor hidden services, to increase the privacy of both the payer and payee.
 
