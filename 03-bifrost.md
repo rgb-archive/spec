@@ -39,13 +39,14 @@ Headers create a chain, which is obviously much "weaker" compared to Bitcoin's b
 Fields included in the header are:
 
 * `1`:`type`
+* `32`:`bitcoin_block_hash`
 * `32`:`previous_filter_hash`
 * `32`:`blob_merkle_root`
-* `32`:`bitcoin_block_hash`
-* `4`:`number_of_blobs`
-* `??`:`signature`
+* `64`:`signature`
 
 `type` is actually unused now, and MUST be always set to `0x01`. In will allow future expansion of this protocol.
+
+The first filter header MUST fill the `previous_filter_hash` with zeros.
 
 `signature` is the signature of the header using the server's static public key.
 
@@ -74,7 +75,7 @@ The message format is, once again, inspired by [#BOLT 1](https://github.com/ligh
 
 Pushes a blob to the server
 
-1. type: ?? (`push`)
+1. type: ?? (even) (`push`)
 2. data:
     * [`16`:`key`]
     * [`compactSize uint`:`len`]
@@ -84,25 +85,82 @@ Pushes a blob to the server
 
 Asks a server for filter headers.
 
-### The `fheader` message
+1. type: ?? (even) (`getfheaders`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
+### The `fheaders` message
 
 Sends filter headers.
+
+1. type: ?? (even) (`fheaders`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`compactSize uint`:`num fheaders`]
+    * [`161 * n`:`filter header`]
+
+The height is referred to the Bitcoin blockchain.
+
+The number of `fheaders` MUST NOT be greater than 2000.
 
 ### The `getfilters` message
 
 Asks a server for filter blocks.
 
+1. type: ?? (even) (`getfilters`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
 ### The `filter` message
 
-Sends filter blocks.
+Sends filter blocks, one message for each of them.
 
-### The `getfblocks` message
+1. type: ?? (even) (`filter`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`bitcoin block hash`]
+    * [`compactSize uint`:`len`]
+    * [`len`:`filter data`]
+
+### The `getbblocks` message
 
 Asks the server for a block of blobs.
 
-### The `fblock` message
+1. type: ?? (even) (`getbblocks`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
+### The `bblock` message
 
 Sends a block of blobs.
+
+Sends filter blocks, one message for each of them.
+
+1. type: ?? (even) (`bblock`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`bitcoin block hash`]
+    * [`compactSize uint`:`len`]
+    * [`len`:`blob data`]
 
 ## Tor support
 
