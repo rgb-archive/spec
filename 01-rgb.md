@@ -49,14 +49,11 @@ A transaction committing to a proof using the `Pay-to-contract` scheme is consid
 
 #### Public key tweaking
 
-The tweaking procedure has been previously described in many publications, such as [Blockstream's "Sidechains", in Appendix A](https://www.blockstream.com/sidechains.pdf).
+The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
 
-It consists of a few steps (some integrity checks have been skipped, since they are less relevant):
-
-1. Generate a random, 128-bit `nonce`
-2. Compute `tweak = hmac_sha256(key=original_pubkey, data=(nonce||double_sha256(entity)))`
-3. Compute `new_pub_key = original_pubkey + G * tweak`
-4. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
+1. Compute `h = double_sha256(proof)`
+2. Compute `new_pub_key = original_pubkey + double_sha256(original_pubkey || h) * G`
+3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
 
 In order to be able to spend the output later, the same procedure should be applied to the private key.
 
