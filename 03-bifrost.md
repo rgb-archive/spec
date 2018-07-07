@@ -9,11 +9,11 @@
 * [Protocol](#protocol)
   * [The `push` message](#the-push-message)
   * [The `getfheaders` message](#the-getfheaders-message)
-  * [The `fheader` message](#the-fheader-message)
+  * [The `fheaders` message](#the-fheaders-message)
   * [The `getfilters` message](#the-getfilters-message)
   * [The `filter` message](#the-filter-message)
-  * [The `getfblocks` message](#the-getfblocks-message)
-  * [The `fblock` message](#the-fblock-message)
+  * [The `getbblocks` message](#the-getbblocks-message)
+  * [The `bblock` message](#the-bblock-message)
 * [Tor support](#tor-support)
 
 ## Exchange of proofs
