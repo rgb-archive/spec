@@ -40,12 +40,19 @@ A transaction committing to a proof or contract using the `OP_RETURN` scheme is 
 1. There's at least one `OP_RETURN` output
 2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
 
+![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
+
 ### Pay-to-contract
 
-A transaction committing to a proof using the `Pay-to-contract` scheme is considered valid if:
+The commitment to a proof made using pay-to-contract is considered valid if:
 
-1. The first output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
-2. The ECDSA public key must be tweaked using the method described below
+* Given `n = fee_satoshi mod num_outputs`
+* Given `h = double_sha256(proof)`
+
+1. The `n`th output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
+2. The public key of this output is tweaked using the method described below and the tweak parameter is `h`
+
+![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
 
 #### Public key tweaking
 
