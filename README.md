@@ -16,6 +16,8 @@ The present repository contains, along with an [Introduction](00-introduction.md
 4. The [Lightning-Network Integration](04-lightning-network.md) module documents the extentions to the [BOLT specifications](https://github.com/lightningnetwork/lightning-rfc) necessary to adapt/extend to RGB the Lightning-Network-based off-chain functionalities, like the creation, the update and the closing of asset-enabled channels and the BOLT-based routing/exchange functionalities for the assets; implementations of these extensions include [a fork of C-Lightning](https://github.com/rgb-org/lightning) and [a fork of LND](https://github.com/lightningnetwork/lnd).
 5. The [Proofmarshal](05-proofmarshal.md) module documents another, asset-specific, layer 2 solution to improve scalability and privacy, alternative and complementary to the Lightning-Network one, based on the Proofmarshal idea; its reference implementation source code (written in Rust) can be found in the [Proofmarshal](https://github.com/rgb-org/proofmarshal) repository.
 
+# What makes RGB special: Client-Side-Validation
+
 ![Client Side Validation](assets/rgb_csv.png)
 
 # License
