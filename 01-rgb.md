@@ -168,13 +168,22 @@ Like contracts, proofs have an header and a body, where the common and "special"
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer encrypts, using the payee’s dark-tag, the following information in a structured way:
 
 * the entire chain of proofs received up to the issuance contract;
+* the list of 256 bit keys required to spend UTXO-Based inputs, if any. They have the same order of proofs they unlock;
 * a list of triplets made with:
 	* color of the token being transacted
 	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+	* either the hash of an UTXO in the form HMAC(key, TX_hash || index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
 * an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 
+UTXO-Based outputs permit to hide the receiving UTXO to the payer, because the 256 bit key is unknown, the key will be provided to spend the UTXO, inside the related transfer proof.
+
 In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
+
+For the same reason the UTXO keys can be derived from a BIP32 derivation with txid, index (vout) and another index (`j`) in the derivation path.
+ For example, wallets could use `m/$(RGB_keys_purpose)'/txid[:4]'/txid[4:8]'/txid[8:12]'/txid[12:16]'/index'/j'` as derication path. txid[a:b] are bytes from a to b indexes, the first included and the latter excluded.
+The latter index `j` is needed to receive multiple RGB transactions to the same UTXO, avoiding any correlation until the spending of the UTXO.
+Moreover, it gives better privacy when a payer receive the hmac and never send tokens to. In this case the payee avoid to reuse `j` and the payer known information become useless.
+When wallets are restored from seed it is necessary to recover keys of unspent Rgb outputs. All parameters are computable from seed and blockchain state, except for `j` indexes. Fortunately it is quick to find them with brute force.
 
 **[note on safety of mixing Bitcoin and RGB addresses]**
 
@@ -190,12 +199,12 @@ Every contract blueprint needs a special "adaptor" proofs, that *proves* that th
 
 RGB allows the sender of a colored transaction to transfer the ownership of any asset in two slightly different ways:
 
-* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` in order to increase the privacy of the receiver.
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `HMAC_SHA256(KEY, TX_HASH || OUTPUT_INDEX_AS_U32)` in order to increase the privacy of the receiver.
 * **Address-Based** if the receiver prefers to receive the colored UTXO itself;
 
 ### RgbOutPoint
 
-`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be a `Sha256d` entity when used in an UTXO-based transaction, to represent the double SHA256 of the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
+`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be a 256 bit entity when used in an UTXO-based transaction, to represent the HMAC_SHA256 of the pair (TX_HASH, OUTPUT_INDEX) protected by the key, or a 16-bit unsigned integer when used in an address-based transaction.
 
 When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
 
@@ -208,7 +217,7 @@ For example, the byte sequence:
 is decoded as:
 
 * `0x01` = UTXO-based transaction
-* `...` = SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)
+* `...` = HMAC_SHA256(KEY, TX_HASH || OUTPUT_INDEX_AS_U32)
 
 ## Exemplified Process Description
 The following Process Description assumes:
@@ -243,8 +252,8 @@ The following Process Description assumes:
 2. The issuer spends the `issuance_utxo` with a commitment to this contract (using an `OP_RETURN`) and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
 
 ### On-chain Asset Transfer
-1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
-2. The payee transmits the UTXO or the address, the dark-tag and a list of storage servers he wishes to use to the payer.
+1. The payee can either chose one of its UTXO and generate its key or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
+2. The payee transmits the hashed UTXO in the form `HMAC_SHA256(KEY, TX_HASH || OUTPUT_INDEX_AS_U32)` or the address, the dark-tag and a list of storage servers he wishes to use to the payer.
 3. The payer composes (eventually performing a coin-selection process from several unspent colored outputs), signs and broadcasts with his wallet a transaction with the following structure (the order of inputs and output is irrelevant):
   * Inputs
      * Colored Input 1: valid colored (entirely or partially) UTXO to spend
@@ -255,10 +264,11 @@ The following Process Description assumes:
 
 The payer also produces a new transfer proof containing:
 
-* A list of triplets made with:
+* A list of 256 bit keys to decode RgbOutPoint inputs, if transaction spends any asset binded to an UTXO;
+* A list of tuples made with:
 	* color of the token being transacted;
 	* amount being transacted;
-	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
+	* either the hash of an UTXO received by the payee to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
 * Optional meta-script-related meta-data;
 
 The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
