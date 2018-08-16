@@ -1,11 +1,17 @@
 # RGB Protocol Specification #01: Contracts and Proofs
 
+* [Commitment Scheme](#commitment-scheme)
+  * [OP_RETURN](#op_return)
+  * [Pay-to-contract](#pay-to-contract)
 * [Contracts](#contracts)
+  * [Re-issuance](#re-issuance)
+  * [Proof-of-burn](#proof-of-burn)
   * [Entity Structure](#entity-structure)
     * [Header](#header)
   * [Blueprints and versioning](#blueprints-and-versioning)
     * [Simple issuance: `0x01`](#simple-issuance-0x01)
     * [Crowdsale: `0x02`](#crowdsale-0x02)
+    * [Re-issuance: `0x03`](#re-issuance-0x03)
 * [Proofs](#proofs)
   * [Transfer proofs](#transfer-proofs)
   * [Special proofs](#special-proofs)
@@ -17,6 +23,47 @@
   * [On-chain Asset Transfer](#on-chain-asset-transfer)
   * [Color Addition](#color-addition)
 
+## Commitment Scheme
+
+In order to ensure immutability and prevent double spend, it's necessary to strongly bind Bitcoin transactions to contracts and proofs, in a way that makes it impossible to modify RGB entities at a later time without invalidating the underlying transaction.
+
+In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
+
+Every contract MUST be deployed using the `OP_RETURN` scheme, independently from which `commitment_scheme` is set.
+
+Every later proof MUST follow the scheme chosen in the contract.
+
+### OP_RETURN
+
+A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
+
+1. There's at least one `OP_RETURN` output
+2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
+
+![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
+
+### Pay-to-contract
+
+The commitment to a proof made using pay-to-contract is considered valid if:
+
+* Given `n = fee_satoshi mod num_outputs`
+* Given `h = double_sha256(proof)`
+
+1. The `n`th output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
+2. The public key of this output is tweaked using the method described below and the tweak parameter is `h`
+
+![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
+
+#### Public key tweaking
+
+The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
+
+1. Compute `h = double_sha256(proof)`
+2. Compute `new_pub_key = original_pubkey + double_sha256(original_pubkey || h) * G`
+3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
+
+In order to be able to spend the output later, the same procedure should be applied to the private key.
+
 ## Contracts
 
 Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of charateristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
@@ -24,6 +71,16 @@ Contracts are entities that, once "deployed" on the Bitcoin blockchain, determin
 Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts.
 
 Many different *kinds* (or *blueprints*) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. **Every contract kind has a specific 1-byte-long unique identifier**, which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time. Every blueprint also has an independent versioning system, in order to make the entire project even more "modular" (See [issue #23 on GitHub](https://github.com/rgb-org/spec/issues/23)).
+
+### Re-issuance
+
+Since the total supply of an asset is hard-coded into the contract itself, there's no way to change it at a later time. The only way to issue more token, thus inflating the supply, is by doing what's called a **"re-issuance"**, which basically means issuing another contract of type `0x03` (reissuance) linked to the previous one by committing it to `reissuance_utxo`. This feature can be disable by setting `reissuance_enabled` to `0`. 
+
+### Proof-of-burn
+
+Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
+
+To do this, token owner have to send them to the `burn_address`, specified in the contract. The proof showing the transfer should then be published by the asset issuer itself [**extend**] to *prove* that the supply has been deflated.
 
 ### Entity Structure
 
@@ -44,6 +101,10 @@ The header contains the following fields:
 * `total_supply`: Total supply in satoshi (1e-8)
 * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
 * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
+* `reissuance_enabled`: Whether the re-issuance feature is enabled or not
+* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
+* `burn_address`: The address to send tokens to in order to burn them
+* `commitment_scheme`: The commitment scheme used by this contract
 * `version`: 16-bit number representing version of the blueprint used
 
 ### Blueprints and versioning
@@ -70,6 +131,35 @@ The additional fields in the body are:
 * `price_sat`: the price in satoshi for a single token
 * `from_block`: when the crowdsale starts
 * `to_block`: when the crowdsale ends
+
+#### Re-issuance: `0x03`
+
+**Version `0x0008`**
+
+This blueprint allows an asset issuer to re-issue tokens by inflating the supply. This is allowed only if the original contract had `reissuance_enabled` != `0`. 
+
+This contract MUST be issued using the `reissuance_utxo` and its version MUST match the original contract's one. 
+
+The following fields in its header MUST be set to `0` in order to disable them:
+
+* `title`
+* `description`
+* `network`
+* `min_amount`
+* `max_hops`
+* `burn_address`
+* `commitment_scheme`
+
+The following fields MUST be filled with "real" values:
+
+* `contract_url`: Unique url for the publication of the contract and the light-anchors
+* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it (must match the original contract's `reissuance_utxo`)
+* `total_supply`: Additional supply in satoshi (1e-8)
+* `reissuance_enabled`: Whether the re-issuance feature is enabled or not
+* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
+* `version`: 16-bit number representing version of the blueprint used
+
+There are no additional fields in its body.
 
 ## Proofs
 
@@ -145,12 +235,16 @@ The following Process Description assumes:
 	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
 	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transfered together,
 	"network": "BITCOIN", // The network in use
+	"reissuance_enabled": 0, // Disable reissuance
+	"burn_address": <Address>, // The address used to burn tokens
+	"commitment_scheme": "OP_RETURN", // The commitment scheme used by this asset
+	
 
 	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
 }
 ```
 
-2. The issuer spends the `issuance_utxo` with a commitment to this contract and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
+2. The issuer spends the `issuance_utxo` with a commitment to this contract (using an `OP_RETURN`) and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
 
 ### On-chain Asset Transfer
 1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
@@ -171,7 +265,7 @@ The payer also produces a new transfer proof containing:
 	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
 * Optional meta-script-related meta-data;
 
-The proof is hashed and the hash is included in **the first** OP_RETURN output created in the transaction.
+The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
 
 This proof is also simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
