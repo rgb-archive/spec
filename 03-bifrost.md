@@ -1,15 +1,20 @@
 # RGB Protocol Specification #03: Networking - Bifröst
 
 * [Exchange of proofs](#exchange-of-proofs)
+* [Introduction](#introduction)
+* [Structure](#structure)
+  * [Filter Header](#filter-header)
+  * [Filter Block](#filter-block)
 * [Transport layer](#transport-layer)
 * [Protocol](#protocol)
   * [The `push` message](#the-push-message)
-  * [The `get_by_pk_hash` message](#the-get_by_pk_hash-message)
-  * [The `get_by_txid` message](#the-get_by_txid-message)
-  * [The `blob` message](#the-blob-message)
-* [Privacy concerns](#privacy-concerns)
-  * [Connecting through Tor](#connecting-through-tor)
-* [Notes](#notes)
+  * [The `getfheaders` message](#the-getfheaders-message)
+  * [The `fheaders` message](#the-fheaders-message)
+  * [The `getfilters` message](#the-getfilters-message)
+  * [The `filter` message](#the-filter-message)
+  * [The `getbblocks` message](#the-getbblocks-message)
+  * [The `bblock` message](#the-bblock-message)
+* [Tor support](#tor-support)
 
 ## Exchange of proofs
 
@@ -34,22 +39,20 @@ Headers create a chain, which is obviously much "weaker" compared to Bitcoin's b
 Fields included in the header are:
 
 * `1`:`type`
+* `32`:`bitcoin_block_hash`
 * `32`:`previous_filter_hash`
 * `32`:`blob_merkle_root`
-* `32`:`bitcoin_block_hash`
-* `4`:`number_of_blobs`
-* `??`:`bit_array` `// DOES THIS MAKE SENSE?`
-* `??`:`signature`
+* `64`:`signature`
 
 `type` is actually unused now, and MUST be always set to `0x01`. In will allow future expansion of this protocol.
 
-`bit_array` is used as a Bloom filter bit array: it allows clients to check if a specific blob *can* be inside the filter.
+The first filter header MUST fill the `previous_filter_hash` with zeros.
 
 `signature` is the signature of the header using the server's static public key.
 
 ### Filter Block
 
-The filter block contains a "list" of the blobs coded in a GCS included in the block (not the blobs themselves). Blobs are indexed using a 16-byte-long hash, generally the first half of `double_sha(dark-tag)`.
+The filter block contains a "list" of the blobs coded in a GCS included in the block (not the blobs themselves). Blobs are indexed using a 16-byte-long hash, the first half of `double_sha(dark-tag)`.
 
 See [BIP 158](https://github.com/bitcoin/bips/blob/master/bip-0157.mediawiki) for more details on the construction and querying of such data structures.
 
@@ -72,7 +75,7 @@ The message format is, once again, inspired by [#BOLT 1](https://github.com/ligh
 
 Pushes a blob to the server
 
-1. type: ?? (`push`)
+1. type: ?? (even) (`push`)
 2. data:
     * [`16`:`key`]
     * [`compactSize uint`:`len`]
@@ -80,17 +83,86 @@ Pushes a blob to the server
 
 ### The `getfheaders` message
 
-### The `fheader` message
+Asks a server for filter headers.
+
+1. type: ?? (even) (`getfheaders`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
+### The `fheaders` message
+
+Sends filter headers.
+
+1. type: ?? (even) (`fheaders`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`compactSize uint`:`num fheaders`]
+    * [`161 * n`:`filter header`]
+
+The height is referred to the Bitcoin blockchain.
+
+The number of `fheaders` MUST NOT be greater than 2000.
 
 ### The `getfilters` message
 
+Asks a server for filter blocks.
+
+1. type: ?? (even) (`getfilters`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
 ### The `filter` message
 
-### The `getfblocks` message
+Sends filter blocks, one message for each of them.
 
-### The `fblock` message
+1. type: ?? (even) (`filter`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`bitcoin block hash`]
+    * [`compactSize uint`:`len`]
+    * [`len`:`filter data`]
 
-### Tor support
+### The `getbblocks` message
+
+Asks the server for a block of blobs.
+
+1. type: ?? (even) (`getbblocks`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`height of first block`]
+    * [`32`:`bitcoin block stop hash`]
+
+The height and the hash are NOT referred to the previous filters but to the Bitcoin blockchain.
+
+Set `stop_hash` to zero to get as many blocks as possible (2000).
+
+### The `bblock` message
+
+Sends a block of blobs.
+
+Sends filter blocks, one message for each of them.
+
+1. type: ?? (even) (`bblock`)
+2. data:
+    * [`1`:`type`]
+    * [`4`:`bitcoin block hash`]
+    * [`compactSize uint`:`len`]
+    * [`len`:`blob data`]
+
+## Tor support
 
 While probably superfluous it's still important to point out that it's strongly recommended for archive server to be reachable as Tor hidden services, to increase the privacy of both the payer and payee.
 
