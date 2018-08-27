@@ -66,7 +66,7 @@ In order to be able to spend the output later, the same procedure should be appl
 
 ## Contracts
 
-Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of charateristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
+Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of characteristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
 
 Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts.
 
@@ -228,12 +228,12 @@ The following Process Description assumes:
 	"kind": 0x01 // The kind of contract we are creating, in this case a generic issuance
 	"version": 0x0008 // Version of this contract kind to use,
 	"title": <String>, // Title of the asset contract
-	"description": <String>, // Description of possible reediming actions and non-script conditions
+	"description": <String>, // Description of possible redeeming actions and non-script conditions
 	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract,
 	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
 	"total_supply": <Integer>, // Total supply in satoshi (1e-8)
 	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
-	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transfered together,
+	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferred together,
 	"network": "BITCOIN", // The network in use
 	"reissuance_enabled": 0, // Disable reissuance
 	"burn_address": <Address>, // The address used to burn tokens
@@ -267,7 +267,7 @@ The payer also produces a new transfer proof containing:
 
 The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
 
-This proof is also simmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
+This proof is also symmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
 ### Color Addition
 [expand]
