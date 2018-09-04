@@ -20,7 +20,7 @@
 
 The networking section describes how wallets should exchange chain of proofs when sending on-chain RGB transactions. 
 
-The process described here involves a set of trustless third-party servers, acting as a temporary "storage" server. The payer, after the creation of a new transfer proof and the broadcast of the corresponding Bitcoin tranasction, will upload the newly-created proof, together with the chain of proofs up to the contract, to the servers specified by the payee in its invoice (TODO: reference to wallet chapter).
+The process described here involves a set of trustless third-party servers, acting as a temporary "storage" server. The payer, after the creation of a new transfer proof and the broadcast of the corresponding Bitcoin transaction, will upload the newly-created proof, together with the chain of proofs up to the contract, to the servers specified by the payee in its invoice (TODO: reference to wallet chapter).
 
 ## Introduction
 
@@ -32,7 +32,7 @@ Archive servers will have a static Bitcoin public key, which is going to be used
 
 ### Filter Header
 
-The filter header is designed to be very small and easy to download/store, while at the same time provide some informations about the blobs contained in a block.
+The filter header is designed to be very small and easy to download/store, while at the same time provide some information about the blobs contained in a block.
 
 Headers create a chain, which is obviously much "weaker" compared to Bitcoin's blockchain, but it still gives the client confidence in the fact that the chain has not been changed since the last time the headers have been synced.
 
