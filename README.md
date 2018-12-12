@@ -9,6 +9,7 @@ Basic information about the project can be provided by the developers in the [Te
 * [RGB Resource Map](#rgb-resource-map)
 * [RGB Protocol Specifications](#rgb-protocol-specifications)
 * [What makes RGB special: Client-Side-Validation](#what-makes-rgb-special-client-side-validation)
+* [Donations](#donations)
 * [License](#license)
 
 # RGB Resource Map
@@ -24,6 +25,9 @@ The present repository contains, along with an [Introduction](00-introduction.md
 # What makes RGB special: Client-Side-Validation
 
 ![Client Side Validation](assets/rgb_csv.png)
+
+# Donations
+Donations are welcome: `1RGB1TAg6xrUJmvWQqc5Q1SmjdLSCzdnu`
 
 # License
 
