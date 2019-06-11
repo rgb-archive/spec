@@ -94,17 +94,17 @@ Contracts are ideally made by two parts:
 The header contains the following fields:
 
 * `title`: Title of the asset contract
-* `description`: Description of the asset contract
-* `contract_url`: Unique url for the publication of the contract and the light-anchors
+* `description`: (optional) Description of the asset contract
+* `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
 * `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
 * `network`: The Bitcoin network in use (mainnet, testnet)
-* `total_supply`: Total supply in satoshi (1e-8)
-* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
-* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
+* `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
+* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
+* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
 * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
 * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
 * `burn_address`: The address to send tokens to in order to burn them
-* `commitment_scheme`: The commitment scheme used by this contract
+* `commitment_scheme`: The commitment scheme used by this contract, 0x01 for OP_RETURN, 0x02 for pay to contract scheme
 * `version`: 16-bit number representing version of the blueprint used
 
 ### Blueprints and versioning
