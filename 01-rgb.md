@@ -29,9 +29,9 @@ In order to ensure immutability and prevent double spend, it's necessary to stro
 
 In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
 
-Every contract MUST be deployed using the `OP_RETURN` scheme, independently from which `commitment_scheme` is set.
+Contract MAY be deployed using different scheme than `commitment_scheme` specified in the contract header (see below).
 
-Every later proof MUST follow the scheme chosen in the contract.
+Every later proof MUST follow the scheme chosen in the contract header.
 
 ### OP_RETURN
 
