@@ -59,10 +59,12 @@ The commitment to a proof made using pay-to-contract is considered valid if:
 The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
 
 1. Compute `h = double_sha256(proof)`
-2. Compute `new_pub_key = original_pubkey + double_sha256(original_pubkey || h) * G`
+2. Compute `new_pub_key = original_pubkey + double_sha256('RGB' || original_pubkey || h) * G`
 3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
 
 In order to be able to spend the output later, the same procedure should be applied to the private key.
+
+We are adding additional string "RGB" to the private & public key tweak procedure in order to avoid conflicts with other implementations using Pay-to-contract scheme, Taproot/MAST. Without it, one might make an attack by constructing some RGB contract which will serialize into a meaningful Bitcoin-script-like code to present it as a non-RGB contract. You can find more information on this matter in the discussion under issue #61 <https://github.com/rgb-org/spec/issues/61>.
 
 ## Contracts
 
