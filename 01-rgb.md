@@ -42,6 +42,8 @@ A transaction committing to a proof or contract using the `OP_RETURN` scheme is 
 
 ![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
 
+The main rationale behind adding OP_RETURN scheme additionally to Pay-to-contract is that getting pay-to-contract to work with hardware wallets is non-trivial. Getting pay-to-contract to work with with most off-the-shelf HSMs (that are typically used by exchanges etc for custody) is impossible. Restricting RGB to pay-to-contract/sign-to-contract only may limit the applicability and use cases.
+
 ### Pay-to-contract
 
 The commitment to a proof made using pay-to-contract is considered valid if:
