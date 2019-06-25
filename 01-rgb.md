@@ -29,9 +29,9 @@ In order to ensure immutability and prevent double spend, it's necessary to stro
 
 In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
 
-Every contract MUST be deployed using the `OP_RETURN` scheme, independently from which `commitment_scheme` is set.
+Contract MAY be deployed using different scheme than `commitment_scheme` specified in the contract header (see below).
 
-Every later proof MUST follow the scheme chosen in the contract.
+Every later proof MUST follow the scheme chosen in the contract header.
 
 ### OP_RETURN
 
@@ -41,6 +41,8 @@ A transaction committing to a proof or contract using the `OP_RETURN` scheme is 
 2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
 
 ![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
+
+The main rationale behind adding OP_RETURN scheme additionally to Pay-to-contract is that getting pay-to-contract to work with hardware wallets is non-trivial. Getting pay-to-contract to work with with most off-the-shelf HSMs (that are typically used by exchanges etc for custody) is impossible. Restricting RGB to pay-to-contract/sign-to-contract only may limit the applicability and use cases.
 
 ### Pay-to-contract
 
