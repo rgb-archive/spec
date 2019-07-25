@@ -171,7 +171,7 @@ Like contracts, proofs have an header and a body, where the common and "special"
 
 ### Transfer proofs
 
-Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer encrypts, using the payee’s dark-tag, the following information in a structured way:
+Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
 
 * the entire chain of proofs received up to the issuance contract;
 * a list of triplets made with:
@@ -179,12 +179,6 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 	* amount being transacted
 	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
 * an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
-
-In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
-
-**[note on safety of mixing Bitcoin and RGB addresses]**
-
-This feature should enhance the anonymity set of asset users, making chain analysis techniques almost as difficult as ones on “plain bitcoin” transactions. The leakage of a specific transaction dark-tag gives away the path from the issuing to the transaction itself, and of the “sibling” transactions, but it preserves uncertainty about other branches.
 
 ### Special proofs
 
@@ -249,8 +243,8 @@ The following Process Description assumes:
 2. The issuer spends the `issuance_utxo` with a commitment to this contract (using an `OP_RETURN`) and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
 
 ### On-chain Asset Transfer
-1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
-2. The payee transmits the UTXO or the address, the dark-tag and a list of storage servers he wishes to use to the payer.
+1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard.
+2. The payee transmits the UTXO or the address and a list of storage servers he wishes to use to the payer.
 3. The payer composes (eventually performing a coin-selection process from several unspent colored outputs), signs and broadcasts with his wallet a transaction with the following structure (the order of inputs and output is irrelevant):
   * Inputs
      * Colored Input 1: valid colored (entirely or partially) UTXO to spend
@@ -268,8 +262,6 @@ The payer also produces a new transfer proof containing:
 * Optional meta-script-related meta-data;
 
 The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
-
-This proof is also symmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
 
 ### Color Addition
 [expand]
