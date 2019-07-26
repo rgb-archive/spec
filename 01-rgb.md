@@ -96,25 +96,30 @@ Contracts are ideally made by two parts:
 
 The header contains the following fields:
 
+* `version`: Version of the contract headers, 16-bit integer.
 * `title`: Title of the asset contract
-* `description`: Description of the asset contract
-* `contract_url`: Unique url for the publication of the contract and the light-anchors
+* `description`: (optional) Description of the asset contract
+* `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
 * `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
 * `network`: The Bitcoin network in use (mainnet, testnet)
-* `total_supply`: Total supply in satoshi (1e-8)
-* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
-* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
+* `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
+* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
+* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
 * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
 * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
 * `burn_address`: The address to send tokens to in order to burn them
-* `commitment_scheme`: The commitment scheme used by this contract
-* `version`: 16-bit number representing version of the blueprint used
+* `commitment_scheme`: The commitment scheme used by this contract, 0x01 for OP_RETURN, 0x02 for pay to contract scheme
+* `blueprint_type`: 16-bit number representing version of the blueprint used
+
+NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
 ### Blueprints and versioning
 
+There are two types of versioning for RGB contracts: header version (`version` field) and blueprint type (`blueprint_type` field). The difference is that header version defines a set of fields used by the contract, which might change in the future with addition of the new fields – or some fields becoming optional or changing data type. Blueprint version defines the exact type of the contract with specific fields and structure for the contract body.
+
 #### Simple issuance: `0x01`
 
-**Version `0x0008`**
+**Blueprint type `0x0008`**
 
 This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
 
@@ -124,7 +129,7 @@ The additional fields in the body are:
 
 #### Crowdsale: `0x02`
 
-**Version `0x0008`**
+**Blueprint type `0x0008`**
 
 This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
 
@@ -137,7 +142,7 @@ The additional fields in the body are:
 
 #### Re-issuance: `0x03`
 
-**Version `0x0008`**
+**Blueprint type `0x0008`**
 
 This blueprint allows an asset issuer to re-issue tokens by inflating the supply. This is allowed only if the original contract had `reissuance_enabled` != `0`. 
 
