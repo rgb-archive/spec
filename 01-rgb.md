@@ -61,7 +61,7 @@ The tweaking procedure has been previously described in many publications, such 
 
 The whole algorithm thus looks in the following way
 1. Serialize contract/proof with standard bitcoin transaction serialization rules: `s = consensus_serialize(<contract> -or- <proof>)`
-1. Prefix it twice with a hash of a proper tag and compute double hash with ''hash<sub>tag</sub>(m)'' function indroduced in the [Taproot BIP] (https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(s)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
+1. Prefix it twice with a hash of a proper tag and compute double hash with `hash<sub>tag</sub>` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(original_pubkey || s)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
 2. Compute `new_pub_key = original_pubkey + h * G`
 3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
 
