@@ -1,5 +1,6 @@
 # RGB Protocol Specification #01: Contracts and Proofs
 
+* [Versioning](#versioning)
 * [Commitment Scheme](#commitment-scheme)
   * [OP_RETURN](#op_return)
   * [Pay-to-contract](#pay-to-contract)
@@ -8,7 +9,7 @@
   * [Proof-of-burn](#proof-of-burn)
   * [Entity Structure](#entity-structure)
     * [Header](#header)
-  * [Blueprints and versioning](#blueprints-and-versioning)
+  * [Blueprints and their versioning](#blueprints-and-versioning)
     * [Simple issuance: `0x01`](#simple-issuance-0x01)
     * [Crowdsale: `0x02`](#crowdsale-0x02)
     * [Re-issuance: `0x03`](#re-issuance-0x03)
@@ -22,6 +23,12 @@
   * [Basic Asset Issuance](#basic-asset-issuance)
   * [On-chain Asset Transfer](#on-chain-asset-transfer)
   * [Color Addition](#color-addition)
+
+## Versioning
+
+The protocol can be updated in the future, affecting the structure of the entities which are used by it (contracts, proofs). In order to preserve the space used by those entities, we use strict serialization format which does not allow adding/removing fields or changing types of existing fields. Thus, each entity has its own version as its first field, which defines how the entity has to be parsed. 
+
+The current specification defines the structure for the first version of RGB contracts, transfer proofs and contract blueprints. By default, proofs MAY utilize versions that are different from the version of the issuing contract or other proofs – unless it is prohibited by the corresponding version specification explicitly.
 
 ## Commitment Scheme
 
@@ -181,6 +188,7 @@ Like contracts, proofs have an header and a body, where the common and "special"
 
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
 
+* `version`: Version of the contract headers, 16-bit integer.
 * the entire chain of proofs received up to the issuance contract;
 * a list of triplets made with:
 	* color of the token being transacted
