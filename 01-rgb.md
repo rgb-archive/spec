@@ -38,7 +38,7 @@ Every later proof MUST follow the scheme chosen in the contract.
 A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
 
 1. There's at least one `OP_RETURN` output
-2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
+2. The first `OP_RETURN` output contains a 32-bytes push which is the double SHA256 of the entity which the transaction is committing to, prefixed with `rgb:contract` (for contracts) and `rgb:proof` (for proofs) UTF-8 strings: `OP_RETURN <SHA256(SHA256('rgb:<contract|proof>' || serialized_bytecode))`
 
 ![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
 
@@ -47,29 +47,23 @@ A transaction committing to a proof or contract using the `OP_RETURN` scheme is 
 The commitment to a proof made using pay-to-contract is considered valid if:
 
 * Given `n = fee_satoshi mod num_outputs`
-* Given `h = double_sha256(proof)`
 
 1. The `n`th output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
-2. The public key of this output is tweaked using the method described below and the tweak parameter is `h`
+2. The public key of this output is tweaked using the method described below
 
 ![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
 
 #### Public key tweaking
 
-The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
+The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/). However, since the tweaking is already widely used practice ([OpenTimeStamps](https://petertodd.org/2016/opentimestamps-announcement), [merchant payments](https://arxiv.org/abs/1212.3257)) and will be even more adopted with the intruduction of [Taproot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-January/015614.html), [Graphroot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-February/015700.html), [MAST](https://github.com/bitcoin/bips/blob/master/bip-0114.mediawiki) and many other proposals, the hash, used for public key tweaking under one standard (like this one) can be provided to some uninformed third-party as a commitment under the other standard (like Taproot), and there is non-zero chance of a collision, when serialized RGB contract or proof will present at least a partially-valid Bitcoin script or other code that can be interpreted as a custom non-RGB script and used to attack that third-party. In order to reduce the risk, we follow the practice introduced in the [Taproot BIP proposal](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) of prefixing the serialized RGB contract/proof with **two** hashes of RGB-specific tags, namely "rgb:contract" for contracts and "rgb:proof" for proofs. Two hashes are required to further reduce risk of undesirable collisions, since nowhere in the Bitcoin protocol the input of SHA256 starts with two (non-double) SHA256 hashes.
 
-1. Serialize contract/proof with standard bitcoin transaction serialization rules: `s = consensus_serialize(contract/proof)`
-1. Prefix it with "RGB" and compute double hash `h = double_sha256('RGB' || s)`
-2. Compute `new_pub_key = original_pubkey + double_sha256('RGB' || original_pubkey || h) * G`
+The whole algorithm thus looks in the following way
+1. Serialize contract/proof with standard bitcoin transaction serialization rules: `s = consensus_serialize(<contract> -or- <proof>)`
+1. Prefix it twice with a hash of a proper tag and compute double hash with ''hash<sub>tag</sub>(m)'' function indroduced in the [Taproot BIP] (https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(s)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
+2. Compute `new_pub_key = original_pubkey + h * G`
 3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
 
 In order to be able to spend the output later, the same procedure should be applied to the private key.
-
-We are adding additional string "RGB" to the private & public key tweak procedure in order to avoid conflicts with other implementations using Pay-to-contract scheme, Taproot/MAST. Without it, one might make an attack by constructing some RGB contract which will serialize into a meaningful Bitcoin-script-like code to present it as a non-RGB contract. 
-
-In order to make the serialized contract and proofs code unambiguous the proof or contract code must be also prefixed with "RGB" before their hashing.
-
-You can find more information on this matters in the discussion under issue #61 <https://github.com/rgb-org/spec/issues/61>.
 
 ## Contracts
 
