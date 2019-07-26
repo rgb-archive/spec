@@ -25,13 +25,14 @@
 
 ## Commitment Scheme
 
-In order to ensure immutability and prevent double spend, it's necessary to strongly bind Bitcoin transactions to contracts and proofs, in a way that makes it impossible to modify RGB entities at a later time without invalidating the underlying transaction.
+In order to ensure immutability and prevent double spend, it's necessary to strongly bind RGB contracts and asset transfer proofs to Bitcoin transaction outputs in a way that makes impossible to modify RGB entities at a later time without invalidating them.
 
-In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
+In this specification we describe two commitment schemes available in the RGB protocol: Pay-to-contract and OP_RETURN.
+Pay-to-contract scheme SHOULD BE the default recommended scheme, while OP_RETURN SHOULD BE be reserved only for the cases of (a) public asset issuing contract commitments and (b) for asset transfers that have to be compatible with HSM/hardware wallets. The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
 
-Contract MAY be deployed using different scheme than `commitment_scheme` specified in the contract header (see below).
+The proofs MAY follow different commitment scheme than the contract; moreover different proofs MAY use different commitment schemes.
 
-Every later proof MUST follow the scheme chosen in the contract header.
+Which commitment scheme is used by a contract or a proof is defined by the presence of the `original_pk` field in their header.
 
 ### OP_RETURN
 
@@ -110,6 +111,7 @@ The header contains the following fields:
 * `burn_address`: The address to send tokens to in order to burn them
 * `commitment_scheme`: The commitment scheme used by this contract, 0x01 for OP_RETURN, 0x02 for pay to contract scheme
 * `blueprint_type`: 16-bit number representing version of the blueprint used
+* `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
@@ -184,6 +186,7 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 	* color of the token being transacted
 	* amount being transacted
 	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+* `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
 * an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 
 ### Special proofs
