@@ -19,6 +19,7 @@
 * [Structure](#structure)
   * [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
   * [RgbOutPoint](#rgboutpoint)
+  * [Multi-signature Asset Ownership](#multi-signature-asset-ownership)
 * [Exemplified Process Description](#exemplified-process-description)
   * [Basic Asset Issuance](#basic-asset-issuance)
   * [On-chain Asset Transfer](#on-chain-asset-transfer)
@@ -235,11 +236,19 @@ is decoded as:
 * `0x01` = UTXO-based transaction
 * `...` = SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)
 
+### Multi-signature asset ownership
+
+Multi-signature asset ownership is working in the same way it works for bitcoin: transfer proofs MAY assign RGB assets to a `P2SH` or `P2WSH` address containing multi-signature locking script, while being committed with either Pay-to-contract or OP_RETURN commitment scheme to some other output within the same or other transaction.
+
+Such assets can be spent with a new transfer proof only under the same circumstances as satoshis under this output: if the unlocking script will satisfy the signing conditions of the locking script.
+
 ## Exemplified Process Description
+
 The following Process Description assumes:
 
 * one-2-one transfers after the issuance (many-to-many transfers are possible);
 * single-asset issuance and transfers (multi-asset issuance and transfers are possible);
+
 ### Basic Asset Issuance
 
 1. The issuer prepares the public contract for the asset issuing, with the following structure:
