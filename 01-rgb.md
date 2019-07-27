@@ -91,7 +91,7 @@ Since the total supply of an asset is hard-coded into the contract itself, there
 
 Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
 
-To do this, token owner have to send them to the `burn_address`, specified in the contract. The proof showing the transfer should then be published by the asset issuer itself [**extend**] to *prove* that the supply has been deflated.
+To do this, token owner have to issue a special form of the proof ("proof of burn"), having zero outputs, and commit it with either Pay-to-contract or OR_RETURN scheme. The proof SHOULD then be published by the asset issuer itself to *prove* that the supply has been deflated.
 
 ### Entity Structure
 
@@ -115,7 +115,6 @@ The header contains the following fields:
 * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
 * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
 * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
-* `burn_address`: The address to send tokens to in order to burn them
 * `commitment_scheme`: The commitment scheme used by this contract, 0x01 for OP_RETURN, 0x02 for pay to contract scheme
 * `blueprint_type`: 16-bit number representing version of the blueprint used
 * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment.
@@ -164,7 +163,6 @@ The following fields in its header MUST be set to `0` in order to disable them:
 * `network`
 * `min_amount`
 * `max_hops`
-* `burn_address`
 * `commitment_scheme`
 
 The following fields MUST be filled with "real" values:
@@ -191,9 +189,10 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
 * `version`: Version of the contract headers, 16-bit integer.
 * the entire chain of proofs received up to the issuance contract;
 * a list of triplets made with:
-	* color of the token being transacted
-	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+    * color of the token being transacted
+    * amount being transacted
+    * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+ Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
 * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
 * an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 
@@ -249,7 +248,6 @@ The following Process Description assumes:
 	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferred together,
 	"network": "BITCOIN", // The network in use
 	"reissuance_enabled": 0, // Disable reissuance
-	"burn_address": <Address>, // The address used to burn tokens
 	"commitment_scheme": "OP_RETURN", // The commitment scheme used by this asset
 	
 
