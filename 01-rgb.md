@@ -33,10 +33,12 @@ The current specification defines the structure for the first version of RGB con
 
 ## Commitment Scheme
 
-In order to ensure immutability and prevent double spend, it's necessary to strongly bind RGB contracts and asset transfer proofs to Bitcoin transaction outputs in a way that makes impossible to modify RGB entities at a later time without invalidating them.
+In order to ensure immutability and prevent double spend, it's necessary to strongly bind RGB contracts and asset transfer proofs to Bitcoin transaction outputs in a way that makes impossible to modify RGB entities at a later time without invalidating them. This is done with cryptographic commitments, that commit the hash of the contract or proof into the mined bitcoin transaction output – pretty much like it is done in the [OpenTimeStamps](https://opentimestamps.org/).
 
 In this specification we describe two commitment schemes available in the RGB protocol: Pay-to-contract and OP_RETURN.
 Pay-to-contract scheme SHOULD BE the default recommended scheme, while OP_RETURN SHOULD BE be reserved only for the cases of (a) public asset issuing contract commitments and (b) for asset transfers that have to be compatible with HSM/hardware wallets. The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
+
+Contracts and proofs bind RGB assets to transaction output – or, in case of proofs, to multiple outputs of a single or multiple transactions (see `issuance_utxo` field in [contract header](#header) and [Proof structure](#address-based-vs-utxo-based) for the details). These transaction(s) MAY differ from a transaction the contract or the proof is committed to. In order to prevent a double spend, each time when a UTXO containing an RGB asset is spent, the spending transaction MUST contain new commitment to the proof of the asset spending. Proofs that are not committed to a transaction which spends **all** of the UTXOs corresponding to RGB assets given in the proof inputs – or committed to some other transaction – MUST BE considered invalid.
 
 The proofs MAY follow different commitment scheme than the contract; moreover different proofs MAY use different commitment schemes.
 
