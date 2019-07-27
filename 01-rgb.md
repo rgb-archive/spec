@@ -54,12 +54,21 @@ The main rationale behind adding OP_RETURN scheme additionally to Pay-to-contrac
 
 ### Pay-to-contract
 
-The commitment to a proof made using pay-to-contract is considered valid if:
+The commitment to a proof made using pay-to-contract SHOULD BE considered valid only, and only if:
 
 * Given `n = fee_satoshi mod num_outputs`
 
-1. The `n`th output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
+1. The `n`th output pays an arbitrary amount of Bitcoin to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
 2. The public key of this output is tweaked using the method described below
+
+Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the proof inputs MUST BE considered as lost. NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported outputs MAY change, assets allocated to an invalid outputs MUST NOT BE considered as deterministically burned; to have a proof of assets burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
+
+Rationale for not supporting other types of transaction outputs for the proof commitments:
+* `P2PK`: considered insecure and SHOULD NOT be used;
+* `P2WSH`: the present version of RGB specification does not provides a way to deterministically define which of the public keys are present inside the script and which are used for the commitment – however, this behaviour may change in the future (see the note above);
+* `P2SH`, except `P2SH`-wrapped `P2WPKH`, but not `P2SH`-wrapped `P2WSH`: the same reason as for `P2WSH`;
+* `OP_RETURN` outputs can't be tweaked, since they do not contain a public key and serve pre-defined purposes only. If it is necessary to commit to OP_RETURN output one should instead use [OP_RETURN commitment scheme](#op_return)
+* Non-standard outputs: tweak procedure can't be standardized.
 
 ![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
 
