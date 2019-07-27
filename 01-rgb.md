@@ -108,29 +108,32 @@ To do this, token owner have to issue a special form of the proof ("proof of bur
 
 ### Entity Structure
 
-Contracts are ideally made by two parts:
+Contracts are made of two parts:
 
 * Header - the area that contains all the fields common among every contract kind
 * Body - the area that contains blueprint-specific fields
+
+Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utilitary function, optimising the speed of data retrieval from Bitcoin Core node. Prunnable fields are optional, they MAY be transfered upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
 
 #### Header
 
 The header contains the following fields:
 
-* `version`: Version of the contract headers, 16-bit integer.
-* `title`: Title of the asset contract
-* `description`: (optional) Description of the asset contract
-* `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
-* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
-* `network`: The Bitcoin network in use (mainnet, testnet)
-* `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
-* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
-* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
-* `reissuance_enabled`: Whether the re-issuance feature is enabled or not
-* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
-* `commitment_scheme`: The commitment scheme used by this contract, 0x01 for OP_RETURN, 0x02 for pay to contract scheme
-* `blueprint_type`: 16-bit number representing version of the blueprint used
-* `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment.
+* Commitment fields:
+    * `version`: Version of the contract headers, 16-bit integer.
+    * `blueprint_type`: 16-bit number representing version of the blueprint used
+    * `title`: Title of the asset contract
+    * `description`: (optional) Description of the asset contract
+    * `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
+    * `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
+    * `network`: The Bitcoin network in use (mainnet, testnet)
+    * `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
+    * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
+    * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
+    * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
+    * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
+* Non-prunable non-commitment fields:
+    * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
@@ -160,6 +163,8 @@ The additional fields in the body are:
 * `price_sat`: the price in satoshi for a single token
 * `from_block`: when the crowdsale starts
 * `to_block`: when the crowdsale ends
+
+These fields are commitment fields.
 
 #### Re-issuance: `0x03`
 
@@ -195,18 +200,22 @@ Proofs, as the name implies, are entities that *prove* that some requirements ar
 
 Like contracts, proofs have an header and a body, where the common and "special" fields are stored respectively.
 
+Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utilitary function, optimising the speed of data retrieval from Bitcoin Core node. Prunnable fields are optional, they MAY be transfered upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
+
 ### Transfer proofs
 
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
 
-* `version`: Version of the contract headers, 16-bit integer.
-* `inputs`: the entire chain of proofs received up to the issuance contract;
-* `outputs`: a list of triplets made with (see notes below):
-    * color of the token being transacted (`asset_id`)
-    * amount being transacted
-    * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
-* `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
-* `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+* Commitment fields:
+    * `version`: Version of the contract headers, 16-bit integer.
+    * `inputs`: the entire chain of proofs received up to the issuance contract;
+    * `outputs`: a list of triplets made with (see notes below):
+        * color of the token being transacted (`asset_id`)
+        * amount being transacted
+        * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+    * `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+* Non-commitment non-prunable fields:
+    * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
 
 Notes on output structure:
 * Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
