@@ -61,6 +61,7 @@ The commitment to a proof made using pay-to-contract SHOULD BE considered valid 
 
 1. The `n`th output pays an arbitrary amount of Bitcoin to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
 2. The public key of this output is tweaked using the method described below
+3. There are no `OP_RETURN` outputs in the same transaction
 
 Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the proof inputs MUST BE considered as lost. NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported outputs MAY change, assets allocated to an invalid outputs MUST NOT BE considered as deterministically burned; to have a proof of assets burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
 
