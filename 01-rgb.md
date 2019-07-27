@@ -197,14 +197,19 @@ Like contracts, proofs have an header and a body, where the common and "special"
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
 
 * `version`: Version of the contract headers, 16-bit integer.
-* the entire chain of proofs received up to the issuance contract;
-* a list of triplets made with:
-    * color of the token being transacted
+* `inputs`: the entire chain of proofs received up to the issuance contract;
+* `outputs`: a list of triplets made with (see notes below):
+    * color of the token being transacted (`asset_id`)
     * amount being transacted
     * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
- Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
 * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
-* an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+* `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+
+Notes on output structure:
+* Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
+* The amount field in the last triplet for each asset type can be omitted, the amount in it is automatically deduced as `sum(inputs) - sum(outputs)` for the given asset type. This allows do avoid situations where `sum(inputs) > sum(outputs)` and  saves storage space.
+
+The proof MUST be considered invalid as a whole if `sum(inputs) < sum(outputs)` for any of the assets transfered by the proof.
 
 ### Special proofs
 
