@@ -49,7 +49,7 @@ Which commitment scheme is used by a contract or a proof is defined by the prese
 A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
 
 1. There's at least one `OP_RETURN` output
-2. The first `OP_RETURN` output contains a 32-bytes push which is the double SHA256 of the entity which the transaction is committing to, prefixed with `rgb:contract` (for contracts) and `rgb:proof` (for proofs) UTF-8 strings: `OP_RETURN <SHA256(SHA256('rgb:<contract|proof>' || serialized_bytecode))`
+2. The first `OP_RETURN` output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to (i.e. `contract_id` and `proof_id`, which reperesent SHA256 of serialized contract/proof data), prefixed with `rgb:contract` (for contracts) and `rgb:proof` (for proofs) UTF-8 strings: `OP_RETURN <SHA256('rgb:<contract|proof>' || SHA256(serialized_bytecode))`
 
 ![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
 
@@ -81,8 +81,8 @@ Rationale for not supporting other types of transaction outputs for the proof co
 The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/). However, since the tweaking is already widely used practice ([OpenTimeStamps](https://petertodd.org/2016/opentimestamps-announcement), [merchant payments](https://arxiv.org/abs/1212.3257)) and will be even more adopted with the intruduction of [Taproot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-January/015614.html), [Graphroot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-February/015700.html), [MAST](https://github.com/bitcoin/bips/blob/master/bip-0114.mediawiki) and many other proposals, the hash, used for public key tweaking under one standard (like this one) can be provided to some uninformed third-party as a commitment under the other standard (like Taproot), and there is non-zero chance of a collision, when serialized RGB contract or proof will present at least a partially-valid Bitcoin script or other code that can be interpreted as a custom non-RGB script and used to attack that third-party. In order to reduce the risk, we follow the practice introduced in the [Taproot BIP proposal](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) of prefixing the serialized RGB contract/proof with **two** hashes of RGB-specific tags, namely "rgb:contract" for contracts and "rgb:proof" for proofs. Two hashes are required to further reduce risk of undesirable collisions, since nowhere in the Bitcoin protocol the input of SHA256 starts with two (non-double) SHA256 hashes.
 
 The whole algorithm thus looks in the following way
-1. Serialize contract/proof with standard bitcoin transaction serialization rules: `s = consensus_serialize(<contract> -or- <proof>)`
-1. Prefix it twice with a hash of a proper tag and compute double hash with `hash<sub>tag</sub>(m)` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(original_pubkey || s)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
+1. Serialize contract/proof with standard bitcoin transaction serialization rules `s = consensus_serialize(<contract> -or- <proof>)` and compute its hash, i.e. obtain `contract_id`/`proof_id` value: `id = SHA256(s)`
+1. Prefix it twice with a hash of a proper tag and compute double hash with `hash<sub>tag</sub>(m)` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(original_pubkey || id)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
 2. Compute `new_pub_key = original_pubkey + h * G`
 3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
 
@@ -115,6 +115,8 @@ Contracts are made of two parts:
 
 Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utilitary function, optimising the speed of data retrieval from Bitcoin Core node. Prunnable fields are optional, they MAY be transfered upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
 
+Contract is uniquely identified by its `contract_id`, which is computed as a single SHA245-hash of the serialized commitment fields from both contract header and body.
+
 #### Header
 
 The header contains the following fields:
@@ -133,7 +135,7 @@ The header contains the following fields:
     * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
     * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
 * Non-prunable non-commitment fields:
-    * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment.
+    * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
@@ -202,6 +204,8 @@ Like contracts, proofs have an header and a body, where the common and "special"
 
 Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utilitary function, optimising the speed of data retrieval from Bitcoin Core node. Prunnable fields are optional, they MAY be transfered upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
 
+Contract is uniquely identified by its `proof_id`, which is computed as a single SHA245-hash of the serialized commitment fields from both contract header and body.
+
 ### Transfer proofs
 
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
@@ -215,7 +219,7 @@ Every RGB on-chain transaction will have a corresponding **"proof"**, where the 
         * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
     * `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 * Non-commitment non-prunable fields:
-    * `original_pk`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment.
+    * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
 Notes on output structure:
 * Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
