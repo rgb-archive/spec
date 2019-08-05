@@ -89,9 +89,9 @@ The tweaking procedure has been previously described in many publications, such 
 
 The whole algorithm thus looks in the following way
 1. Serialize contract/proof with standard bitcoin transaction serialization rules `s = consensus_serialize(<contract> -or- <proof>)` and compute its hash, i.e. obtain `contract_id`/`proof_id` value: `id = SHA256(s)`
-1. Prefix it twice with a hash of a proper tag and compute double hash with `hash<sub>tag</sub>(m)` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash<sub>rgb:contract/rgb:proof</sub>(original_pubkey || id)`, where `hash<sub>tag</sub>(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
+1. Prefix it twice with a hash of a proper tag and compute double hash with `hash`<sub>tag</sub>`(m)` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash`<sub>rgb:contract/rgb:proof</sub>`(original_pubkey || id)`, where `hash`<sub>tag</sub>`(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
 2. Compute `new_pub_key = original_pubkey + h * G`
-3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
+3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pubkey` as public key
 
 In order to be able to spend the output later, the same procedure should be applied to the private key.
 
@@ -103,7 +103,7 @@ Contract is uniquely identified by its `contract_id`, which is computed as a sin
 
 Every asset is identified by the `asset_id`, which is computed in the following way:  
 `asset_id = RIPMD160(SHA256(contract_id || committment_txid || asset_no))`,  
-where `committment_txid` is a serialized txid (in standard bitcoin serialization format) of the transaction in which this contract is committed to. Use of RIPMD160 hash gives smaller size for the asset_id, which is important for saving storage space in proofs, and makes asset_id indistinguishable from Bitcoin addresses.
+where `committment_txid` is a serialized txid (in standard bitcoin serialization format) of the transaction in which this contract is committed to and `asset_no` is a serial asset number inside the contract (for the contracts issuing only a single asset it should be `0`). Use of RIPMD160 hash gives smaller size for the asset_id, which is important for saving storage space in proofs, and makes asset_id indistinguishable from Bitcoin addresses.
 
 The rational for this asset_id design is the following: RGB-enabled LN nodes would have to announce the list of assets (i.e. asset ids) they can buy/sell – with corresponding bid and ask prices. Since we'd like to increase the privacy, we need these asset ids to be "obscured", i.e. not easily tracked down to the specific asset/contract – unless for those who has the source of the asset issuing contract. This means that we could not just rely on `SHA256(contract_id || index)`, since contract_id is public, and it will be quite easy to construct "rainbow tables" with contract_ids joined by different indexes and track the asset ids down to the issuing contracts. At the same time, `committment_txid` is a private information known only to the owners of the contract (with the exception of public contracts, but we do not need to hide asset_id for public assets anyway).
 
@@ -321,6 +321,3 @@ The payer also produces a new transfer proof containing:
 * Optional meta-script-related meta-data;
 
 The proof is hashed and a commitment to the hash is included in the transaction.
-
-### Color Addition
-[expand]
