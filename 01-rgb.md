@@ -133,7 +133,7 @@ Both header and body contain fields to which the contract is cryptographically c
 The header contains the following fields:
 
 * Commitment fields:
-    * `version`: Version of the contract headers, 16-bit integer.
+    * `version`: [Version](#versioning) of the contract, 16-bit integer.
     * `blueprint_type`: 16-bit number representing version of the blueprint used
     * `title`: Title of the asset contract
     * `description`: (optional) Description of the asset contract
@@ -216,15 +216,17 @@ Contract is uniquely identified by its `proof_id`, which is computed as a single
 Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer stores the following information in a structured way:
 
 * Commitment fields:
-    * `version`: Version of the contract headers, 16-bit integer.
-    * `assets`: list of `asset_id`s, transferred by this proof; each `asset_id` MUST have corresponding proofs and issuing contracts in input DAG;
-    * `inputs`: the entire DAG of proofs received up to the issuance contracts for each of the assets transferred by the proof;
-    * `outputs`: an array containing list of transfers for each or the `asset_id` listed in `assets` field, such as an index within `outputs` field corresponds to an `asset_id` under the same index in `assets` field. Each array member is presented by a list of transfers, consisting of tuples:
+    * `version`: [version](#versioning) of the proof, 16-bit integer.
+    * `inputs`: a list containing upstream `proof_id`s (and/or `contract_id`s when the proof spends issuing output of some contract);
+    * `assets`: a list of `asset_id`s, transferred by this proof; each `asset_id` MUST have corresponding proofs;
+    * `outputs`: an array containing list of transfers for each of the `asset_id` listed in `assets` field, such as an index within `outputs` field corresponds to an `asset_id` under the same index in `assets` field. Each array member is presented by a list of transfers, consisting of tuples:
         * amount being transacted
-        * either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
+        * [RgbOutPoint](#rgboutpoint) for the asset: a UTXO for *UTXO-Based* transfers – or an index which will bind the asset to the corresponding output of the transaction *spending* the input UTXO.
     * `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
 * Non-commitment non-prunable fields:
     * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
+* Prunable fields:
+    * `commitment_txid`: transaction this proof is committed to. This is a redundant information added to increase the speed of requests to Bitcoin Core and thus it can be pruned.
 
 Notes on output structure:
 * Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
