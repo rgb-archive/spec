@@ -139,15 +139,15 @@ The header contains the following fields:
     * `description`: (optional) Description of the asset contract
     * `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
     * `network`: The Bitcoin network in use (mainnet, testnet)
-    * `issuance_utxo`: The UTXO which will be held the issued assets
-    * `committment_txid`: (optional) The transaction id containing a commitment to this contract. If the field is absent, the contract is committed to the same transaction containing `issuance_utxo`
+    * `utxo`: The UTXO which will be spent in the transaction which will have a contract commitment
+    * `issuance_output`: The RgbOutPoint which will held the issued assets
     * `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
     * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
     * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
     * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
     * `signature`: (optional) Signature of the committed part of the contract (without the signature field itself).
 * Non-prunable non-commitment fields:
-    * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
+    * `original_pubkey`: Provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original public key is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
