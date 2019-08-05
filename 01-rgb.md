@@ -39,7 +39,7 @@ In this specification we describe two commitment schemes available in the RGB pr
 
 The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
 
-Contracts and proofs bind RGB assets to transaction output – or, in case of proofs, to multiple outputs of a single or multiple transactions (see `issuance_utxo` field in [contract header](#header) and [Proof structure](#address-based-vs-utxo-based) for the details). These transaction(s) MAY differ from a transaction the contract or the proof is committed to. In order to prevent a double spend, each time when a UTXO containing an RGB asset is spent, the spending transaction MUST contain new commitment to the proof of the asset spending. Proofs that are not committed to a transaction which spends **all** of the UTXOs corresponding to RGB assets given in the proof inputs – or committed to some other transaction – MUST BE considered invalid.
+Contracts and proofs bind RGB assets to transaction(s) output(s) (see `issuance_utxo` field in [contract header](#header) and [Proof structure](#address-based-vs-utxo-based) for the details). These transaction(s) MAY differ from a transaction the contract or the proof is committed to. In order to prevent a double spend, each time when a UTXO containing an RGB asset is spent, the spending transaction MUST contain new commitment to the proof of the asset spending. Proofs that are not committed to a transaction which spends **all** of the UTXOs corresponding to RGB assets given in the proof inputs – or committed to some other transaction – MUST BE considered invalid.
 
 Which commitment scheme is used by a contract or a proof is defined by the presence of the `original_pk` field in their header.
 
@@ -56,7 +56,7 @@ The main rationale behind adding OP_RETURN scheme additionally to Pay-to-contrac
 
 ### Pay-to-contract
 
-The commitment to a proof made using pay-to-contract SHOULD BE considered valid only, and only if:
+The commitment to a proof made using pay-to-contract SHOULD BE considered valid if, and only if:
 
 * Given `n = fee_satoshi mod num_outputs`
 
@@ -67,7 +67,7 @@ The commitment to a proof made using pay-to-contract SHOULD BE considered valid 
 Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the proof inputs MUST BE considered as lost. NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported output types MAY change, assets allocated to invalid outputs MUST NOT BE considered as deterministically burned; in order to create a proper proof of burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
 
 Rationale for not supporting other types of transaction outputs for the proof commitments:
-* `P2PK`: considered insecure and SHOULD NOT be used;
+* `P2PK`: considered legacy and MUST NOT be used;
 * `P2WSH`: the present version of RGB specification does not provides a way to deterministically define which of the public keys are present inside the script and which are used for the commitment – however, this behaviour may change in the future (see the note above);
 * `P2SH`, except `P2SH`-wrapped `P2WPKH`, but not `P2SH`-wrapped `P2WSH`: the same reason as for `P2WSH`;
 * `OP_RETURN` outputs can't be tweaked, since they do not contain a public key and serve pre-defined purposes only. If it is necessary to commit to OP_RETURN output one should instead use [OP_RETURN commitment scheme](#op_return)
@@ -137,10 +137,13 @@ The header contains the following fields:
     * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
     * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
     * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens. Absence of this field means that reissuance is disabled,
+    * `signature`: (optional) Signature of the committed part of the contract (without the signature field itself).
 * Non-prunable non-commitment fields:
     * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
+
+The contract issuer MAY sign the contract (by filling the appropriate `signature` field). It is the right of the issuer to choose which key should be used for contract signing: it can be the same key which is used for an associated commitment output, a key associated with the DNS certificate of the issuer domain, or any other.
 
 ### Blueprints and versioning
 
@@ -161,7 +164,7 @@ This blueprint allows to set-up a crowdsale, to sell tokens at a specified price
 The additional fields in the body are:
 
 * `deposit_address`: the address to send Bitcoins to in order to buy tokens
-* `price_sat`: the price in satoshi for a single token
+* `price_sat`: the price (in satoshis) for a single token
 * `from_block`: when the crowdsale starts
 * `to_block`: when the crowdsale ends
 
