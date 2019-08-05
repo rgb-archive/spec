@@ -144,7 +144,7 @@ The header contains the following fields:
     * `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
     * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
     * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
-    * `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens. Absence of this field means that reissuance is disabled,
+    * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
     * `signature`: (optional) Signature of the committed part of the contract (without the signature field itself).
 * Non-prunable non-commitment fields:
     * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
@@ -180,9 +180,9 @@ These fields are commitment fields.
 
 This blueprint allows an asset issuer to re-issue tokens by inflating the supply. This is allowed only if the original contract had `reissuance_enabled` != `0`. 
 
-This contract MUST be issued using the `reissuance_utxo` and its version MUST match the original contract's one. 
+This contract MUST be deployed by spending the commitment output of the original issuing contract. The major version of the re-issuance contract MUST match the original contract's one. 
 
-The following fields in its header MUST be set to `0` in order to disable them:
+The following fields in its header MUST be set to `0` or zero-length string in order to disable them:
 
 * `title`
 * `description`
@@ -197,7 +197,6 @@ The following fields MUST be filled with "real" values:
 * `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it (must match the original contract's `reissuance_utxo`)
 * `total_supply`: Additional supply in satoshi (1e-8)
 * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
-* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
 * `blueprint_type`: 16-bit number representing version of the blueprint used (i.e. `0x03`)
 
 There are no additional fields in its body.
