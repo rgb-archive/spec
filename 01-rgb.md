@@ -29,7 +29,15 @@
 
 The protocol can be updated in the future, affecting the structure of the entities which are used by it (contracts, proofs). In order to preserve the space used by those entities, we use strict serialization format which does not allow adding/removing fields or changing types of existing fields. Thus, each entity has its own version as its first field, which defines how the entity has to be parsed. 
 
-The current specification defines the structure for the first version of RGB contracts, transfer proofs and contract blueprints. By default, proofs MAY utilize versions that are different from the version of the issuing contract or other proofs – unless it is prohibited by the corresponding version specification explicitly.
+The version is a 16-bit integer, constructed of two main parts: major and minor version bits. The minor version is the lower (in little-endian Bitcoin encoding format) six bits (0-63); the major version is the upper ten bits. Minor version represents backward-compatible protocol changes ("soft-forks"), while major version increase represents incompatible changes ("hard-forks"). 
+
+Proofs MAY have different minor version than the issuing contract, however they can't differ in a major version from it. This is required in order to prevent potential double-spending: the changes in a commitment schemes are "hard-forks" without backward compatibility, and they will require increase of the major version. Since the proofs can't have a different major version than the issuing contract, it will be impossible to produce two proofs under the different commitment schemes utilizing incompatible versions.
+
+If the issuer would like to upgrade the contract major version, he needs to deploy a new [Proof-of-burn](#proof-of-burn) contract with the updated major version, so asset owners will be able to upgrade and migrate to a new version through it. 
+
+Contract major and minor version jointly defines the set of available contract blueprints and their structure.
+
+The current specification defines the structure for the 0.5 version of RGB contracts, their blueprints and transfer proofs. 
 
 ## Commitment Scheme
 
@@ -145,11 +153,9 @@ NB: Since with bitcoin network protocol-style serialization, used by RGB, we can
 
 The contract issuer MAY sign the contract (by filling the appropriate `signature` field). It is the right of the issuer to choose which key should be used for contract signing: it can be the same key which is used for an associated commitment output, a key associated with the DNS certificate of the issuer domain, or any other.
 
-### Blueprints and versioning
+### Blueprint types
 
-There are two types of versioning for RGB contracts: header version (`version` field) and blueprint type (`blueprint_type` field). The difference is that header version defines a set of fields used by the contract, which might change in the future with addition of the new fields – or some fields becoming optional or changing data type. Blueprint version defines the exact type of the contract with specific fields and structure for the contract body.
-
-#### Simple issuance: `0x01`
+#### Simple issuance: type `0x01`
 
 This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
 
@@ -157,7 +163,7 @@ The additional fields in the body are:
 
 * `owner_utxo`: the UTXO which will receive all the tokens
 
-#### Crowdsale: `0x02`
+#### Crowdsale: type `0x02`
 
 This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
 
@@ -170,7 +176,7 @@ The additional fields in the body are:
 
 These fields are commitment fields.
 
-#### Re-issuance: `0x03`
+#### Re-issuance: type `0x03`
 
 This blueprint allows an asset issuer to re-issue tokens by inflating the supply. This is allowed only if the original contract had `reissuance_enabled` != `0`. 
 
