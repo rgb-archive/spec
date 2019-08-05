@@ -35,12 +35,11 @@ The current specification defines the structure for the first version of RGB con
 
 In order to ensure immutability and prevent double spend, it's necessary to strongly bind RGB contracts and asset transfer proofs to Bitcoin transaction outputs in a way that makes impossible to modify RGB entities at a later time without invalidating them. This is done with cryptographic commitments, that commit the hash of the contract or proof into the mined bitcoin transaction output – pretty much like it is done in the [OpenTimeStamps](https://opentimestamps.org/).
 
-In this specification we describe two commitment schemes available in the RGB protocol: Pay-to-contract and OP_RETURN.
-Pay-to-contract scheme SHOULD BE the default recommended scheme, while OP_RETURN SHOULD BE be reserved only for the cases of (a) public asset issuing contract commitments and (b) for asset transfers that have to be compatible with HSM/hardware wallets. The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
+In this specification we describe two commitment schemes available in the RGB protocol: Pay-to-contract and OP_RETURN. Pay-to-contract scheme SHOULD BE the default recommended scheme, while OP_RETURN SHOULD BE be reserved only for asset transfer proofs that have to be compatible with hardware wallets, thus proofs under the same contract can use different commitment schemes. Contracts always MUST BE deployed only with pay to contract scheme. Proofs 
+
+The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
 
 Contracts and proofs bind RGB assets to transaction output – or, in case of proofs, to multiple outputs of a single or multiple transactions (see `issuance_utxo` field in [contract header](#header) and [Proof structure](#address-based-vs-utxo-based) for the details). These transaction(s) MAY differ from a transaction the contract or the proof is committed to. In order to prevent a double spend, each time when a UTXO containing an RGB asset is spent, the spending transaction MUST contain new commitment to the proof of the asset spending. Proofs that are not committed to a transaction which spends **all** of the UTXOs corresponding to RGB assets given in the proof inputs – or committed to some other transaction – MUST BE considered invalid.
-
-The proofs MAY follow different commitment scheme than the contract; moreover different proofs MAY use different commitment schemes.
 
 Which commitment scheme is used by a contract or a proof is defined by the presence of the `original_pk` field in their header.
 
@@ -63,7 +62,7 @@ The commitment to a proof made using pay-to-contract SHOULD BE considered valid 
 
 1. The `n`th output pays an arbitrary amount of Bitcoin to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
 2. The public key of this output is tweaked using the method described below
-3. There are no `OP_RETURN` outputs in the same transaction
+3. There are no `OP_RETURN` outputs in the same transaction (this rune is [forced at the level of Bitcoin Core](https://github.com/bitcoin/bitcoin/blob/d0f81a96d9c158a9226dc946bdd61d48c4d42959/src/policy/policy.cpp#L131))
 
 Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the proof inputs MUST BE considered as lost. NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported output types MAY change, assets allocated to invalid outputs MUST NOT BE considered as deterministically burned; in order to create a proper proof of burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
 
@@ -96,7 +95,7 @@ Contract is uniquely identified by its `contract_id`, which is computed as a sin
 
 Every asset is identified by the `asset_id`, which is computed in the following way:  
 `asset_id = RIPMD160(SHA256(contract_id || committment_txid || asset_no))`,  
-where `committment_txid` is a serialized txid (in standard bitcoin serialization format) of the transaction in which this contract is committed with either pay-to-contract or OP_RETURN commitment scheme. Use of RIPMD160 hash gives smaller size for the asset_id, which is important for saving storage space in proofs, and makes asset_id indistinguishable from Bitcoin addresses.
+where `committment_txid` is a serialized txid (in standard bitcoin serialization format) of the transaction in which this contract is committed to. Use of RIPMD160 hash gives smaller size for the asset_id, which is important for saving storage space in proofs, and makes asset_id indistinguishable from Bitcoin addresses.
 
 The rational for this asset_id design is the following: RGB-enabled LN nodes would have to announce the list of assets (i.e. asset ids) they can buy/sell – with corresponding bid and ask prices. Since we'd like to increase the privacy, we need these asset ids to be "obscured", i.e. not easily tracked down to the specific asset/contract – unless for those who has the source of the asset issuing contract. This means that we could not just rely on `SHA256(contract_id || index)`, since contract_id is public, and it will be quite easy to construct "rainbow tables" with contract_ids joined by different indexes and track the asset ids down to the issuing contracts. At the same time, `committment_txid` is a private information known only to the owners of the contract (with the exception of public contracts, but we do not need to hide asset_id for public assets anyway).
 
@@ -285,14 +284,13 @@ The following Process Description assumes:
 	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferred together,
 	"network": "BITCOIN", // The network in use
 	"reissuance_enabled": 0, // Disable reissuance
-	"commitment_scheme": "OP_RETURN", // The commitment scheme used by this asset
 	
 
 	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
 }
 ```
 
-2. The issuer spends the `issuance_utxo` with a commitment to this contract (using an `OP_RETURN`) and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
+2. The issuer spends the `issuance_utxo` with a commitment to this contract and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
 
 ### On-chain Asset Transfer
 1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard.
@@ -313,7 +311,7 @@ The payer also produces a new transfer proof containing:
 	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
 * Optional meta-script-related meta-data;
 
-The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
+The proof is hashed and a commitment to the hash is included in the transaction.
 
 ### Color Addition
 [expand]
