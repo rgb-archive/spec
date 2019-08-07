@@ -224,8 +224,7 @@ Every RGB on-chain transaction will have a corresponding **proof**, where the pa
 * Commitment fields:
     * `version`: [version](#versioning) of the proof, 16-bit integer.
     * `upstreams`: a list containing upstream `proof_id`s (and/or `contract_id`s when the proof spends issuing output of some contract);
-    * `assets`: a list of `asset_id`s, transferred by this proof; each `asset_id` MUST have corresponding proofs;
-    * `assignments`: an array containing list of transfers for each of the `asset_id` listed in `assets` field, such as an index within `outputs` field corresponds to an `asset_id` under the same index in `assets` field. Each array member is presented by a list of transfers, consisting of tuples:
+    * `assignments`: an array, where elements are subarrays containing list of transfers for each of the assets. Assets are ordered according to their order in the upstream proofs and contracts. For instance, if the first upstream proof transacts assets C and then B, the second A and B, then the order of asset subarrays will be "C, B, A". Each subarray for a given asset contains:
         * amount being transacted
         * [RgbOutPoint](#asset-assignments) for the asset: a UTXO for *UTXO-Based* transfers – or an index which will assign the asset to the corresponding output of the transaction *spending* the input UTXO.
     * `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
