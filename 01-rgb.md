@@ -20,10 +20,6 @@
   * [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
   * [RgbOutPoint](#rgboutpoint)
   * [Multi-signature Asset Ownership](#multi-signature-asset-ownership)
-* [Exemplified Process Description](#exemplified-process-description)
-  * [Basic Asset Issuance](#basic-asset-issuance)
-  * [On-chain Asset Transfer](#on-chain-asset-transfer)
-  * [Color Addition](#color-addition)
 
 ## Versioning
 
@@ -111,7 +107,7 @@ Many different *kinds* (or *blueprints*) of contracts exist, allowing the user t
 
 ### Re-issuance
 
-Since the total supply of an asset is hard-coded into the contract itself, there's no way to change it at a later time. The only way to issue more token, thus inflating the supply, is by doing what's called a **"re-issuance"**, which basically means issuing another contract of type `0x03` (reissuance) linked to the previous one by committing it to `reissuance_utxo`. This feature can be disable by setting `reissuance_enabled` to `0`. 
+Since the total supply of an asset is hard-coded into the contract itself, there's no way to change it at a later time. The only way to issue more token, thus inflating the supply, is by doing what's called a **"re-issuance"**, which basically means issuing another contract of type `0x03` (re-issuance) linked to the previous one by committing it to `reissuance_utxo`. This feature can be disable by setting `reissuance_enabled` to `0`. 
 
 ### Proof-of-burn
 
@@ -133,21 +129,21 @@ Both header and body contain fields to which the contract is cryptographically c
 The header contains the following fields:
 
 * Commitment fields:
-    * `version`: [Version](#versioning) of the contract, 16-bit integer.
+    * `version`: [version](#versioning) of the contract, 16-bit integer.
     * `blueprint_type`: 16-bit number representing version of the blueprint used
-    * `title`: Title of the asset contract
-    * `description`: (optional) Description of the asset contract
-    * `contract_url`: (optional) Unique url for the publication of the contract and the light-anchors
-    * `network`: The Bitcoin network in use (mainnet, testnet)
-    * `utxo`: The UTXO which will be spent in the transaction which will have a contract commitment
-    * `issuance_output`: The RgbOutPoint which will held the issued assets
-    * `total_supply`: Total supply, using the smallest undividable available unit, 64-bit unsigned integer
-    * `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*, 64-bit unsigned integer
-    * `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
-    * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
-    * `signature`: (optional) Signature of the committed part of the contract (without the signature field itself).
+    * `title`: title of the asset contract
+    * `description`: (optional) description of the asset contract
+    * `contract_url`: (optional) unique url for the publication of the contract and the light-anchors
+    * `network`: Bitcoin network in use (mainnet, testnet)
+    * `deployment_txout`: UTXO which will be spent in the transaction which will have a contract commitment
+    * `issuance_txout`: RgbOutPoint which will held the issued assets
+    * `issued_supply`: total issued supply, using the smallest undividable available unit, 64-bit unsigned integer
+    * `min_amount`: minimum amount of assets that can be transferred together, like a *dust limit*, 64-bit unsigned integer
+    * `max_hops`: maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature, which should be the default option)
+    * `reissuance_enabled`: whether the re-issuance feature is enabled or not
+    * `signature`: (optional) signature of the committed part of the contract (without the signature field itself).
 * Non-prunable non-commitment fields:
-    * `original_pubkey`: Provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original public key is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
+    * `original_pubkey`: provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original public key is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
 NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
@@ -157,15 +153,13 @@ The contract issuer MAY sign the contract (by filling the appropriate `signature
 
 #### Simple issuance: type `0x01`
 
-This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
+This blueprint allows to mint `issued_supply` tokens and immediately send them to `issuance_txout`.
 
-The additional fields in the body are:
-
-* `owner_utxo`: the UTXO which will receive all the tokens
+There are no additional fields in its body.
 
 #### Crowdsale: type `0x02`
 
-This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
+This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `issued_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
 
 The additional fields in the body are:
 
@@ -189,17 +183,20 @@ The following fields in its header MUST be set to `0` or zero-length string in o
 * `network`
 * `min_amount`
 * `max_hops`
-* `commitment_scheme`
+* `deployment_txout`
 
-The following fields MUST be filled with "real" values:
+The following fields MUST be filled:
 
 * `contract_url`: Unique url for the publication of the contract and the light-anchors
-* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it (must match the original contract's `reissuance_utxo`)
-* `total_supply`: Additional supply in satoshi (1e-8)
+* `issued_supply`: Additional supply in satoshi (1e-8)
 * `reissuance_enabled`: Whether the re-issuance feature is enabled or not
 * `blueprint_type`: 16-bit number representing version of the blueprint used (i.e. `0x03`)
 
 There are no additional fields in its body.
+
+A typical process of contract deployemt with asset issuance (and possible later re-issuance):
+
+![Contract deployments](assets/rgb_contract_deployment.png)
 
 ## Proofs
 
@@ -249,76 +246,12 @@ RGB allows the sender of a colored transaction to transfer the ownership of any 
 
 ### RgbOutPoint
 
-`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be a `Sha256d` entity when used in an UTXO-based transaction, to represent the double SHA256 of the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
+`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be bitcoin `OutPoint` entity when used in an UTXO-based transaction, to represent the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
 
 When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
-
-For example, the byte sequence:
-
-```
-01 49CAFDBC 3E9133A7 5B411A3A 6D705DCA 2E9565B6 60123B65 35BABB75 67C28F02
-```
-
-is decoded as:
-
-* `0x01` = UTXO-based transaction
-* `...` = SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)
 
 ### Multi-signature asset ownership
 
 Multi-signature asset ownership is working in the same way it works for bitcoin: transfer proofs MAY assign RGB assets to a `P2SH` or `P2WSH` address containing multi-signature locking script, while being committed with either Pay-to-contract or OP_RETURN commitment scheme to some other output within the same or other transaction.
 
 Such assets can be spent with a new transfer proof only under the same circumstances as satoshis under this output: if the unlocking script will satisfy the signing conditions of the locking script.
-
-## Exemplified Process Description
-
-The following Process Description assumes:
-
-* one-2-one transfers after the issuance (many-to-many transfers are possible);
-* single-asset issuance and transfers (multi-asset issuance and transfers are possible);
-
-### Basic Asset Issuance
-
-1. The issuer prepares the public contract for the asset issuing, with the following structure:
-
-```c
-{
-	"kind": 0x01 // The kind of contract we are creating, in this case a generic issuance
-	"version": 0x0008 // Version of this contract kind to use,
-	"title": <String>, // Title of the asset contract
-	"description": <String>, // Description of possible redeeming actions and non-script conditions
-	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract,
-	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
-	"total_supply": <Integer>, // Total supply in satoshi (1e-8)
-	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
-	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferred together,
-	"network": "BITCOIN", // The network in use
-	"reissuance_enabled": 0, // Disable reissuance
-	
-
-	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
-}
-```
-
-2. The issuer spends the `issuance_utxo` with a commitment to this contract and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
-
-### On-chain Asset Transfer
-1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard.
-2. The payee transmits the UTXO or the address and a list of storage servers he wishes to use to the payer.
-3. The payer composes (eventually performing a coin-selection process from several unspent colored outputs), signs and broadcasts with his wallet a transaction with the following structure (the order of inputs and output is irrelevant):
-  * Inputs
-     * Colored Input 1: valid colored (entirely or partially) UTXO to spend
-     * Colored Input 2: (optional)
-  * Outputs
-     * Colored Output 1: address of the Nth receiver (if performing an *Address-Based* transaction)
-     * Colored Output 2: (optional) another address of the payer for the colored (up to capacity) and non-colored change
-
-The payer also produces a new transfer proof containing:
-
-* A list of triplets made with:
-	* color of the token being transacted;
-	* amount being transacted;
-	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
-* Optional meta-script-related meta-data;
-
-The proof is hashed and a commitment to the hash is included in the transaction.
