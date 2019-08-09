@@ -20,6 +20,7 @@
   * [Asset assignments](#asset-assignments)
   * [Multi-signature Asset Ownership](#multi-signature-asset-ownership)
   * [Asset proof of burn](#proof-of-burn)
+  * [Version update specifics](#version-update-specifics)
 
 ## Overview
 
@@ -38,6 +39,8 @@ The version is a 16-bit integer, constructed of two main parts: major and minor 
 Proofs MAY have different minor version than the issuing contract, however they can't differ in a major version from it. This is required in order to prevent potential double-spending: the changes in a commitment schemes are "hard-forks" without backward compatibility, and they will require increase of the major version. Since the proofs can't have a different major version than the issuing contract, it will be impossible to produce two proofs under the different commitment schemes utilizing incompatible versions.
 
 If the issuer would like to upgrade the contract major version, he needs to deploy a new [upgrade contract](#upgrade)  with the updated major version, so asset owners will be able to upgrade and migrate to a new version through it. 
+
+A special attention must be paid to the major upgrades changing the existing commitment schemes. Please check [proof version upgrade specifics](#version-update-specifics) section for the details.
 
 Contract major and minor version jointly defines the set of available contract blueprints and their structure.
 
@@ -182,6 +185,8 @@ The `blueprint_type` for initial issuance is `0x02`. There are no additional fie
 
 This allows to update the major contract version in order to migrate the assets to the new backward-incompatible proof formats (i.e. changing the major version number, see [Versioning](#versioning) for details). Deployment of this contract by the party controlling `upgrade_txout` from the original issuance contract signifies the network that the issuer has accepted the security risks associated with the upgrade to the new major proofs version and recommends the upgrade to all asset owners.
 
+NB: While it might not be required to utilize single use seal procedure requiring some additional input to be added to some bitcoin transaction, at the present time we have not come with some other secure option for the upgrade procedure. This can be a matter of the research efforts for the future.
+
 The following fields in the contract header MUST BE set to `0` or zero-length string in order to disable them (i.e. their values will be inherited from the original issuance contract):
 
 * `title`
@@ -278,6 +283,16 @@ RGB allows the sender of a commitment transaction to transfer the ownership of a
 `RgbOutPoint` is an entity that encodes the receiver of some assets. It can either be bitcoin `OutPoint` entity when used in an UTXO-based transaction, to represent the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
 
 When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
+
+### Version update specifics
+
+The proofs MUST stick to the highest major version provided by the parent proofs (proofs which associated assets are spent). If the issuers of some of the assets under the proof have not adopted (according to the [algotithm](#upgrade)) the highest major version which is adopted by the other assets from the proof, these assets MUST be transferred by a separate proof.
+
+A special attention must be paid to the major upgrades changing the existing commitment schemes. These updates, in order to address the associated risk of double-spent attack, MUST follow very specific procedure:
+1. The asset issuer must announce that he supports the update by committing to an appropriate [upgrade contract](#upgrade).
+2. All the asset owners which would like to upgrade the asset will be publishing the first proof with the updated major version. This proof MUST use and MUST BE validated with the commitment scheme rules from the *previous* version.
+3. All the following proof after this first proof adapting the new major version MUST adapt and MUST BE validated with the new commitment scheme as defined by the new version specification.
+4. There is no possibility to downgrade the major version of the proofs that has adopted a commitment scheme upgrade.
 
 ### Multi-signature asset ownership
 
