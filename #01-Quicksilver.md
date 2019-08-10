@@ -19,10 +19,11 @@
 
 ## Overview
 
-Quicksilver framework allows creation of "dark" (private) state-managing systems and networks, where the *state* is, for 
-instance, distribution and transfers of some asset, balances (in accounting terms, or cross-linked growing data trees, 
-shared between selected peers in a trustless manner, maintained in a form of DAG on top of Bitcoin blockchain. The 
-framework can also operate on top of different Layer 2 technologies, like Lightning Network, Eltoo, etc.
+Quicksilver framework allows creation of "dark" (private) state-managing systems and networks, where the **state** is, 
+for instance, information on distribution and ownership of some asset; unspent balances or cross-linked immutable data 
+structures. The state is shared between selected peers in a trustless manner, maintained in a form of DAG on top of 
+Bitcoin blockchain. The framework can also operate on top of different Layer 2 technologies, like Lightning Network, 
+Eltoo, etc.
 
 ### Definitions
 
