@@ -7,7 +7,7 @@ Basic information about the project can be provided by the developers in the [Te
 
 
 # RGB Protocol Specifications
-1. [Quicksilver framework](#01-Quicksilver.md) – a framework defining distributed state management mechanics used by
+1. [Quicksilver framework](01-Quicksilver.md) – a framework defining distributed state management mechanics used by
    RGB to issue and account issued assets on top of LNP/BP stack.
 
 # Donations
