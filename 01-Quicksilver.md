@@ -15,9 +15,14 @@
     * [Multi-signature state ownership](#multi-signature-state-ownership)
     * [Proof of state destruction](#proof-of-state-destruction)
 * [Data structures](#data-structures)
-  * [Proof](#proof-data-structure)
-  * [Seal](#seal)
-  * [FlagVarInt](#flagvarint)
+  * [Schema](#schema)
+    * [MetaField](#metafield)
+    * [StateType](#statetype)
+    * [SealType](#sealtype)
+    * [ProofType](#prooftype)
+  * [Proof](#proof)
+    * [Seal](#seal)
+    * [FlagVarInt](#flagvarint)
 
 ## Overview
 
@@ -155,7 +160,7 @@ further reduce risk of undesirable collisions, since nowhere in the Bitcoin prot
 two (non-double) SHA256 hashes <https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes>.
 
 The whole algorithm thus looks in the following way:
-1. Serialize proof with a procedure described in the [Proof](#proof-data-structure) section
+1. Serialize proof with a procedure described in the [Proof](#proof) section
 2. Compute SHA256 hash of the serialized data, which is also will serve as a unique identifier for the proof: 
    `id = SHA256(serialized_proof)`
 1. Get result of `hash(message, tag) := SHA256(SHA256(tag) || SHA256(tag) || message)` function
@@ -185,16 +190,17 @@ A transaction committed to a proof using ORB type is considered valid if:
 The schema in quicksilver defines the exact structure of a seal-bound state, including:
 * relation between the seals pointing to transaction outputs and parts of the state
 * structure for the state data and metadata 
-* serialization and deserealization rules for state data and metadata (see [Proof](#proof-data-structure) section)
+* serialization and deserealization rules for state data and metadata (see [Proof data structure](#proof) section)
 * rules to validate the state and state changes on top of the validation runes used by the Quicksilver
 
-The schema can be defined in formal or an informal name. One of Quicksilver schema samples is an [RGB protocol], 
-defining RGB schema for digital asset (digitalized securities, collectibles etc) issuing and transfer.
+The schema can be defined in formal or an informal name. One of Quicksilver schema samples is an 
+[RGB protocol](04-RGB.md), defining RGB schema for digital asset (digitalized securities, collectibles etc) issuing 
+and transfer.
 
 Schemata are identified by a cryptographic RIPMD160-hash of the schema name (for informally-defined schemas) or 
-RIPMD160-hash of serialized formal schema definition data (see [Schema definition section]). Quicksilver-enabled user 
-agents MAY use the hash to locate and download schema formal definition file (QSD) and use it in order to parse the 
-sealed state and validate parts of it in relation to schema-defined state validation rules.
+RIPMD160-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
+Quicksilver-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
+in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
 
 
 ### Proofs
@@ -217,6 +223,7 @@ MUST contain special additional fields absent in the rest of proofs:
   proof and ambiguity in the state.
 * `schema`: a cryptographic RIPMD160-hash of the schema name (for informally-defined schemas) or RIPMD160-hash of 
   serialized formal schema definition data
+* `network`: Bitcoin network in use (mainnet, testnet)
 
 A special form of the proof, [Proof of state destruction](#proof-of-state-destruction) can be constructed just by
 creating a normal proof with zero seals.
@@ -251,13 +258,39 @@ published in order to prove that the part of the state was really destroyed.
 
 ## Data structures
 
-### Proof data structure
+### Schema
+
+Field         | Serialization format    | Description
+------------- | ----------------------- | -----------------------
+`meta_fields` | `VarInt[MetaField]`     |
+`state_types` | `VarInt[StateType]`     |
+`seal_types`  | `VarInt[SealType]`      |
+`proof_types` | `VarInt[ProofType]`     |
+
+
+#### MetaField
+
+
+#### StateType
+
+
+#### SealType
+
+
+#### ProofType
+
+`state2seals` | `VarInt[SealPositions]` |
+
+
+
+### Proof
 
 Field        | Serialized       | Committed | Optionality  | Description
 ------------ | ---------------- | --------- | ------------ | -----------
 `ver`        | `byte`           | yes       | only in root | Version of the quicksilver protocol having the highest bit set to `1` (to signal the root proof)
 `root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity. Present only if `flag == 1`
 `schema`     | `RIPMD160`       | yes       | only in root | Schema ID applied to parse the `data` and `meta` fields. Present only in the root proof, i.e. if `flag == 1`
+`network`    | `byte`           | yes       | only in root | Network to which this root proof is deployed: Mainnet, testnet etc
 `pubkey`     | `PubKey`         | yes*      | for P2C only | Original public key before the key tweaking procedure applied
 `seals`      | [`FlagVarInt`](#flagvarint)`[Seal]` | yes | obligatory | References to sealed txouts or vouts. Must always start with a highest bit = `0` in order to distinguish normal proofs from root proofs (which have the highest byte in the first bet = `1`)
 `state`      | `VarInt[bytes]`  | yes       | obligatory   | Sealed state: some data structures linked to the sealed transaction outputs
@@ -269,7 +302,7 @@ Field        | Serialized       | Committed | Optionality  | Description
 
 The structure of a smallest normal P2C-committed proof will be around 38 bytes.
 
-### Seal
+#### Seal
 
 Field        | Serialized   | Length (bytes)      
 ------------ | ------------ | ------------------
@@ -277,7 +310,7 @@ Field        | Serialized   | Length (bytes)
 `vout`       | [`FlagVarInt`](#flagvarint) | 1..5
 `txid`       | `TxId`       | 0 or 36
 
-### FlagVarInt
+#### FlagVarInt
 
 FlagVarInt uses Bitcoin VarInt-like serialization format, but it reserves the highest bit from the first byte for a flag
 and supports values only up to 32-bit integers. In general, it helps to save a byte on signaling some information inside
