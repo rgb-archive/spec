@@ -9,9 +9,11 @@
   * [Cryptographic commitments](#cryptographic-commitments)
     * [Pay-to-contract commitments](#pay-to-contract)
     * [OP_RETURN-based commitments](#op_return-based)
-  * [Schema](#schema)
+  * [Schema](#schemata)
   * [Proofs](#proofs)
   * [State](#state)
+    * [Multi-signature state ownership](#multi-signature-state-ownership)
+    * [Proof of state destruction](#proof-of-state-destruction)
 * [Data structures](#data-structures)
   * [Proof](#proof-data-structure)
   * [Seal](#seal)
@@ -133,7 +135,7 @@ Rationale for not supporting other types of transaction outputs for the proof co
 NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of 
 supported output types MAY change, state bound to an invalid output types MUST NOT BE considered as deterministically 
 **destroyed**, but rather as **undefined**. In order to create a proper proof of state destruction a user MUST follow 
-the procedure described in the [Proof of state destruction section](#proof-of-state-destruction)
+the procedure described in the [Proof of state destruction](#proof-of-state-destruction) section.
 
 The tweaking procedure has been previously described in many publications, such as 
 [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
@@ -178,7 +180,7 @@ A transaction committed to a proof using ORB type is considered valid if:
    `OP_RETURN <SHA256('quicksilver' || SHA256(serialized_proof))>`
 
 
-### Schema
+### Schemata
 
 The schema in quicksilver defines the exact structure of a seal-bound state, including:
 * relation between the seals pointing to transaction outputs and parts of the state
@@ -216,6 +218,9 @@ MUST contain special additional fields absent in the rest of proofs:
 * `schema`: a cryptographic RIPMD160-hash of the schema name (for informally-defined schemas) or RIPMD160-hash of 
   serialized formal schema definition data
 
+A special form of the proof, [Proof of state destruction](#proof-of-state-destruction) can be constructed just by
+creating a normal proof with zero seals.
+
 
 ### State
 
@@ -226,6 +231,22 @@ outputs from the root proof.
 The distributed state initialized by the root proof can be uniquely identified with the root proof id, i.e. its hash
 used for the commitment procedure. This hash includes the hash of the transaction output which is spent during the
 proof publication, so there is no way to publish the same proof twice and have the same id for some distributed state.
+
+#### Multi-signature state ownership
+
+Multi-signature state ownership is working in the same way it works for bitcoin: proofs MAY assign parts of the state 
+to a `P2SH` or `P2WSH` address containing multi-signature locking script, while being committed with either P2C or ORB 
+commitment to some other output within the same or other transaction.
+
+Such state can be changed with a new proof only under the same circumstances as satoshis under this output: if the 
+unlocking script will satisfy the signing conditions of the locking script.
+
+#### Proof of state destruction
+
+Token owners have the ability to provably and deterministically destroy parts of the state. To do this, proof owner 
+having control on some parts of the state has to create a special form of the proof (**proof of state destruction**),
+which is a normal proof with zero seals, and commit it with either P2C or ORB commitment. The proof MAY then be 
+published in order to prove that the part of the state was really destroyed.
 
 
 ## Data structures
