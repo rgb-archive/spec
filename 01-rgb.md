@@ -107,7 +107,7 @@ A transaction committing to a proof or contract using the `OP_RETURN` scheme is 
 
 Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of characteristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
 
-Contract is uniquely identified by its `contract_id`, which is computed as a single SHA245-hash of the serialized commitment fields from both contract header and body.
+Contract is uniquely identified by its `contract_id`, which is computed as a single SHA256-hash of the serialized commitment fields from both contract header and body.
 
 Many different *kinds* (or **blueprints**) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. Every contract kind has a specific 1-byte-long unique identifier for the used blueprint type (`blueprint_type` field), which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time.
 
@@ -249,7 +249,7 @@ Like contracts, proofs have an header and a body, where the common and "special"
 
 Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utility function, optimising the speed of data retrieval from Bitcoin Core node. Prunable fields are optional, they MAY be transferred upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
 
-Proof is uniquely identified by its `proof_id`, which is computed as a single SHA245-hash of the serialized commitment fields.
+Proof is uniquely identified by its `proof_id`, which is computed as a single SHA256-hash of the serialized commitment fields.
 
 ### Transfer proofs
 
