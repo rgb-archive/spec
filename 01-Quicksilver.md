@@ -96,8 +96,8 @@ are spent, they become **unsealed txouts** and the proof unsealing them becomes 
 of all historical proofs. Historical proofs (**unsealed proofs**) are linked together through a blockchain-based history 
 of unsealed and committed transaction outputs. This history can't be reconstructed without having access to a complete 
 history of proofs changing same particular part of the state. Since the proofs are kept by the parties having access to 
-the state, the system makes impossible to censor or analyse state chaning transactions, their history or reconstruct the 
-set of state controlling parties (owners).
+the state, the system makes impossible to censor or analyse state changing transactions, their history or reconstruct
+the set of state controlling parties (owners).
 
 ### Cryptographic commitments
 
@@ -113,16 +113,39 @@ to tweak the public keys with some factor (as described in [Pay-to-contract](#pa
 The reason of pay-to-contract being the default type is the reduction of Bitcoin blockchain pollution with hash data 
 **and** better privacy: pay-to-contract commitments are "transparent" and can't be detected using on-chain analysis.
 
+#### Deterministic definition of committed output
+
+Each state seal must be unsealed only once, when the transaction output binding the state is spent. There also MUST BE 
+a single deterministic way of detecting the proof assigned to the sealed state change, so it would not be possible to
+create several different versions of the state change proof for the given unsealed output. In order to achieve this,
+Quicksilver defines a single way to find which specific transaction output (for the transaction spending sealed outputs)
+MUST contain cryptographic commitment with either P2C or ORB commitment schemes. 
+
+The algorithm is designed in a way that helps to keep information of the output containing commitment private from any 
+party which may assume that the transaction must contain such commitment. The function combines two parameters: 
+* **fee amount** (`fee`): a public factor, which may be changed by the party changing the state (i.e. unsealing an   
+  output with a previous state),
+* **entropy from previous proof** (`entropy`): a private factor, known only to those who has an access to the history 
+  of the proofs. This implies that such factor can't be changed by the party changing the state, since it's predefined 
+  at the moment of sealing the parent state.
+
+The committed output number `n` is determined by the following formula:  
+`n = (fee * entropy) mod count(outputs)`
+
+The current version of the specification uses RIPMD160 hash of the serialized proof as a source of `entropy`. 
+For P2C proofs the proof is serialized _including_ the original public key field (`pubkey`). This different 
+serialization and different hash type comparing to SHA256 hash used to create the commitment itself further reduces
+probability for some third-party to guess the number of the actual committed output. The root proof, which has no
+parent proofs, should take as an entropy value the RIPMD160 hash of the serialized schema type source to which it
+commits to.
+
 #### Pay-to-contract
 
 Proof commitment made with pay-to-contract (P2C) type SHOULD BE considered valid if, and only if:
 
-* Given `f = fee_satoshi mod #(outputs)`
-
-1. The `f`th output pays an arbitrary amount of satoshis to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
+   pays an arbitrary amount of satoshis to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
 2. The public key of this output is tweaked using the method described below
-3. There are no `OP_RETURN` outputs in the same transaction (this rule is 
-[forced at the level of Bitcoin Core](https://github.com/bitcoin/bitcoin/blob/d0f81a96d9c158a9226dc946bdd61d48c4d42959/src/policy/policy.cpp#L131))
 
 Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the state associated with the unsealed 
 proofs MUST BE considered as lost (destroyed). 
@@ -179,7 +202,8 @@ support modification of output public keys.
 
 A transaction committed to a proof using ORB type is considered valid if:
 
-1. There is exactly one `OP_RETURN` output (rule forced by Bitcoin Core)
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
+   pays an arbitrary amount of satoshis to `OP_RETURN` output
 2. This output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to 
    (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'quicksilver' tag: 
    `OP_RETURN <SHA256('quicksilver' || SHA256(serialized_proof))>`
@@ -197,8 +221,8 @@ The schema can be defined in formal or an informal name. One of Quicksilver sche
 [RGB protocol](04-RGB.md), defining RGB schema for digital asset (digitalized securities, collectibles etc) issuing 
 and transfer.
 
-Schemata are identified by a cryptographic RIPMD160-hash of the schema name (for informally-defined schemas) or 
-RIPMD160-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
+Schemata are identified by a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or 
+SHA256-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
 Quicksilver-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
 in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
 
@@ -221,7 +245,7 @@ MUST contain special additional fields absent in the rest of proofs:
 * `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction containing
   an output committed to the root proof. This mechanism is necessary to prevent possible double-publication of the root
   proof and ambiguity in the state.
-* `schema`: a cryptographic RIPMD160-hash of the schema name (for informally-defined schemas) or RIPMD160-hash of 
+* `schema`: a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or SHA256-hash of 
   serialized formal schema definition data
 * `network`: Bitcoin network in use (mainnet, testnet)
 

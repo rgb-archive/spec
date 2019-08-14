@@ -141,7 +141,7 @@ proof_types:
 ```
  07 <title> 00 <description> 00 <contract_url> 00 <issued_supply> 04 <max_supply> 04 <dust_limit> 03 <signature> 20
  04 <amount> 01 <inflation> 00 <upgrade> 00 <prune> 00
- 04 <asset) 00 <inflation> 01 <upgrade> 02 <pruning> 03
+ 04 <asset> 00 <inflation> 01 <upgrade> 02 <pruning> 03
  05 <Primary issue> 07 00 00 01 00 02 01 03 00 04 01 05 00 06 01 04 00 01 FF 01 00 01 02 01 01 03 01 01
     <Secondary issue> 01 02 03 00 06 01 04 00 01 FF 01 00 01 02 01 01 03 01 01
     <Asset version upgrade> 02 03 00 01 FF 02 01 01 03 01 01 01 02 01 01
