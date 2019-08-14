@@ -260,26 +260,91 @@ published in order to prove that the part of the state was really destroyed.
 
 ### Schema
 
+Schema file uniquely defines which kinds of proofs can be used for the given schema; how they can be constructed into
+a DAG via different seals and which kinds of state and metadata they have to provide. First, schema defines all possible
+data types for metadata fields, state and seals; than it lists definitions for proof types, which 
+
 Field         | Serialization format    | Description
 ------------- | ----------------------- | -----------------------
-`meta_fields` | `VarInt[MetaField]`     |
-`state_types` | `VarInt[StateType]`     |
-`seal_types`  | `VarInt[SealType]`      |
-`proof_types` | `VarInt[ProofType]`     |
+`meta_fields` | `VarInt[`[`MetaField`](#metafield)`]` | Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
+`state_types` | `VarInt[`[`StateType`](#statetype)`]` | Definition of all possible state types that will be managed by the proofs
+`seal_types`  | `VarInt[`[`SealType`](#sealtype)`]`   | Definition of different seal types that can be used by the proofs 
+`proof_types` | `VarInt[`[`ProofType`](#prooftype)`]` | List of possible proof formats, bridging meta fields, state types and seal types together with their validation rules
 
 
 #### MetaField
 
+Metadata are composed of metafield types, which are the same as used by the normal bitcoin serialization function, like:
+* `String`: first byte encodes string length, the rest — the actual string content. Zero-length strings equals to NULL
+  if the optional value is implied.
+* 8- to 64-bit integer
+* Variable-length integer
+* SHA256 and RIPMD160 hashes
+* Public key (in compressed format)
+
+Each metafield type is encoded as a tuple of `(title: str, type: u8)`, where title string is bitcoin-encoded string.
+Values for each types are given in the following table:
+
+Type       | TypeId
+---------- | -------
+String     | 0x00
+u8         | 0x01
+u16        | 0x02
+u32        | 0x03
+u64        | 0x04
+i8         | 0x05
+i16        | 0x06
+i32        | 0x07
+i64        | 0x08
+VarInt     | 0x09
+FlagVarInt | 0x0a
+SHA256     | 0x10
+RIPMD160   | 0x11
+PubKey     | 0x12
+VarInt[u8] | 0x20
+
 
 #### StateType
+
+State sealed and updated by the proofs can be of the following kinds:
+
+* **State without a value**: this type of state may help to track proofs of some binary actions taken by owners, like 
+  the proofs for the fact of asset reissuance.
+* **Unspent balances**, as fractions of total value, useful as a unit of accounting. The state is stored as u64 values,
+  like bitcoin satoshis, representing the minimum indivisible part of some asset. The total asset supply in this case
+  MUST BE defined as one of the meta fields.
+* **Array of immutable data**: TBD
+* **Mutable complex single value**: TBD
+* **Distributed value components**: TBD
+
+Each state type is encoded as a tuple of `(title: str, type: u8)`, where title string is bitcoin-encoded string.
+Values for each types are given in the following table:
+
+State Type | TypeId
+---------- | -------
+No value   | 0x00
+Balances   | 0x01
 
 
 #### SealType
 
+Since proofs can manage multiple kinds of the state at the same time, it's important to define which seals will be able
+to manage which types. This is done through `SealType` data structure, consisting of tuples 
+`(title: str, state_type_idx: u8`), where `state_type_idx` is the reference to the `StateType` withing the same schema 
+under the corresponding index within `state_types` list.
+
 
 #### ProofType
 
-`state2seals` | `VarInt[SealPositions]` |
+The first proof listed in the `proot_fypes` array MUST BE the type used for root proofs. The other proof types are 
+defined by the type of seal they unseal; there can be only a single proof type unsealing each type of seal.
+
+Field         | Type                    | Description
+------------- | ----------------------- | ---------------------------------------
+`title`       | `str`                   | Human-readable name of the proof type
+`unseals`     | `VarInt`                | Index of `SealType` which has to be unsealed by the proof; must be abset for the first proof type in the list (since it is a root proof which does not unseal any data)
+`meta_fields` | `VarInt[`[`FlagVarInt`](#flagvarint)`]` | Indexes of `MetaField` that can be used by this proof type (with optionality flag)
+`seal_types`  | `VarInt[(VarInt, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
 
 
 
@@ -287,9 +352,9 @@ Field         | Serialization format    | Description
 
 Field        | Serialized       | Committed | Optionality  | Description
 ------------ | ---------------- | --------- | ------------ | -----------
-`ver`        | `byte`           | yes       | only in root | Version of the quicksilver protocol having the highest bit set to `1` (to signal the root proof)
-`root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity. Present only if `flag == 1`
-`schema`     | `RIPMD160`       | yes       | only in root | Schema ID applied to parse the `data` and `meta` fields. Present only in the root proof, i.e. if `flag == 1`
+`ver`        | `byte`           | yes       | only in root | Version of the quicksilver protocol having the highest bit set to `1`
+`root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity.
+`schema`     | `RIPMD160`       | yes       | only in root | Schema ID applied to parse the `data` and `meta` fields.
 `network`    | `byte`           | yes       | only in root | Network to which this root proof is deployed: Mainnet, testnet etc
 `pubkey`     | `PubKey`         | yes*      | for P2C only | Original public key before the key tweaking procedure applied
 `seals`      | [`FlagVarInt`](#flagvarint)`[Seal]` | yes | obligatory | References to sealed txouts or vouts. Must always start with a highest bit = `0` in order to distinguish normal proofs from root proofs (which have the highest byte in the first bet = `1`)
