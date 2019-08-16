@@ -277,12 +277,12 @@ The proof MUST be considered invalid as a whole if `sum(assets_amounts_in_txins)
 
 RGB allows the sender of a commitment transaction to transfer the ownership of any asset in two slightly different ways:
 
-* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to assign the asset he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` in order to increase the privacy of the receiver.
-* **Address-Based** if the receiver prefers to receive the colored UTXO itself;
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to assign the asset he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more).
+* **Vout-Based** if the receiver prefers to assign assets to an output of the transaction spending previous asset and containing output commited to the new proof;
 
-`RgbOutPoint` is an entity that encodes the receiver of some assets. It can either be bitcoin `OutPoint` entity when used in an UTXO-based transaction, to represent the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
+`RgbOutPoint` is an entity that encodes the receiver of some assets. It can either be bitcoin `OutPoint` entity when used in an UTXO-based transaction, to represent the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an vout-based transaction.
 
-When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
+When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for vout-based ones.
 
 ### Version update specifics
 
