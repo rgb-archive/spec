@@ -318,3 +318,16 @@ Such assets can be spent with a new transfer proof only under the same circumsta
 Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
 
 To do this, token owner have to issue a special form of the proof ("proof of burn"), having zero assignments, and commit it with either Pay-to-contract or OR_RETURN scheme. The proof SHOULD then be published by the asset issuer itself to prove that the supply has been deflated.
+
+### Validation workflow
+
+If Alice wats to send Bob some assets and Bob wants to pay Alice for the assets some bitcoins,
+1. Alice provides Bob with the full proof history up to the issuance contract with a new draft proof
+2. Bob validates the history and creates a new tx and a new proof, where tx 
+   * spends some outputs from the last proof provided by Alice, 
+   * contains a commitment to the new proof, and 
+   * the proof assigns assets to some outputs of the new transaction - or some other(s) UTXO(s) owned by Bob
+3. Bob provides Alice with both unpublished tx and the proof
+4. If Alice ok she signs the tx and publishes it to bitcoin network
+
+This gives necessary atomicity and escrow guarantees.
