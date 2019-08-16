@@ -58,17 +58,28 @@ Contracts and proofs assign RGB assets to transaction(s) output(s) (see `issuanc
 
 Which commitment scheme is used by a contract or a proof is defined by the presence of the `original_pubkey` field in their header.
 
+#### Deterministic definition of committed output
+
+There MUST BE a single deterministic way of detecting a proof or a contract assigned to a transaction spending some of RGB assets, so it would not be possible to create several different versions of a proof or a contract. In order to achieve this, RGB defines a single way to find which specific transaction output MUST contain cryptographic commitment with either P2C or OP_RETURN commitment schemes. 
+
+The algorithm is designed in a way that helps to keep information of the output containing commitment private from any  party which may assume that the transaction must contain such commitment. The function combines two parameters: 
+* **fee amount** (`fee`): a public factor, which may be changed by the party spending an asset,
+* **entropy from previous proof** (`entropy`): a private factor, known only to those who has an access to the history of the proofs. This implies that such factor can't be changed by the party spending the asset, since it's predefined at the moment of receiving the asset.
+
+The committed output number `n` is determined by the following formula:  
+`n = (fee * entropy) mod count(outputs)`
+
+The current version of the specification uses RIPMD160 hash of the serialized proof as a source of `entropy`. For P2C proofs the proof is serialized _including_ the original public key field (`pubkey`). This different serialization and different hash type comparing to SHA256 hash used to create the commitment itself further reduces probability for some third-party to guess the number of the actual committed output. The root proof, which has no parent proofs, should take as an entropy value the RIPMD160 hash of the serialized schema type source to which it commits to.
+
 ### Pay-to-contract
 
-The commitment to a proof made using pay-to-contract SHOULD BE considered valid if, and only if:
+Proof commitment made with pay-to-contract (P2C) type SHOULD BE considered valid if, and only if:
 
-* Given `n = fee_satoshi mod num_outputs`
-
-1. The `n`th output pays an arbitrary amount of Bitcoin to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
+   pays an arbitrary amount of satoshis to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
 2. The public key of this output is tweaked using the method described below
-3. There are no `OP_RETURN` outputs in the same transaction (this rune is [forced at the level of Bitcoin Core](https://github.com/bitcoin/bitcoin/blob/d0f81a96d9c158a9226dc946bdd61d48c4d42959/src/policy/policy.cpp#L131))
 
-Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the parent proofs MUST BE considered as lost. NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported output types MAY change, assets allocated to invalid outputs MUST NOT BE considered as deterministically burned; in order to create a proper proof of burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
+Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the parent proofs MUST BE considered as lost.
 
 Rationale for not supporting other types of transaction outputs for the proof commitments:
 * `P2PK`: considered legacy and MUST NOT be used;
@@ -76,6 +87,8 @@ Rationale for not supporting other types of transaction outputs for the proof co
 * `P2SH`, except `P2SH`-wrapped `P2WPKH`, but not `P2SH`-wrapped `P2WSH`: the same reason as for `P2WSH`;
 * `OP_RETURN` outputs can't be tweaked, since they do not contain a public key and serve pre-defined purposes only. If it is necessary to commit to OP_RETURN output one should instead use [OP_RETURN commitment scheme](#op_return)
 * Non-standard outputs: tweak procedure can't be standardized.
+
+NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported output types MAY change, assets allocated to invalid outputs MUST NOT BE considered as deterministically burned; in order to create a proper proof of burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
 
 ![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
 
@@ -95,10 +108,10 @@ In order to be able to spend the output later, the same procedure should be appl
 
 This scheme MUST BE used only to commit the proofs created with a special hardware (digital wallets) which is unable to support signing of pay-to-contract output commitments. 
 
-A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
+A transaction committed to a proof using ORB type is considered valid if:
 
-1. There's at least one `OP_RETURN` output
-2. The first `OP_RETURN` output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to (i.e. `contract_id` and `proof_id`, which reperesent SHA256 of serialized contract/proof data), prefixed with `rgb:contract` (for contracts) and `rgb:proof` (for proofs) UTF-8 strings: `OP_RETURN <SHA256('rgb:<contract|proof>' || SHA256(serialized_bytecode))`
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) pays an arbitrary amount of satoshis to `OP_RETURN` output
+2. This output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'quicksilver' tag: `OP_RETURN <SHA256('quicksilver' || SHA256(serialized_proof))>`
 
 ![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
 
