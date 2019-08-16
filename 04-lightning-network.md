@@ -37,7 +37,9 @@ This document describes how Lightning Network is able to support RGB with a very
 
 ### Feature bits
 
-We picked bits `8/9` of the [`features`](https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md) bit-array to signal for Spectrum support. We plan to use mostly the ninth bit (so that the node will still be able to connect to "vanilla" ones), but reserving the even bit too allows to, if a node admin wants to, connect exclusively to Spectrum-compatible nodes.
+We picked bits `10/11` of the [`features`](https://github.com/lightningnetwork/lightning-rfc/blob/master/09-features.md) bit-array to signal for Spectrum support. We plan to use mostly the tenth bit (so that the node will still be able to connect to "vanilla" ones), but reserving the even bit too allows to, if a node admin wants to, connect exclusively to Spectrum-compatible nodes.
+
+Also, in order to function properly, Spectrum will require to have bits `8/9` (support for TLVs) set by both parties involved into channel creation.
 
 ### General design
 
