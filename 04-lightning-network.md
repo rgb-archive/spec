@@ -47,6 +47,23 @@ Also, in order to function properly, Spectrum will require to have bits `8/9` (s
 
 2. When creating a new message type is necessary to replace a "vanilla" one, the same `type` + a constant format is used.
 
+### Changes to specific messages:
+
+#### `init`
+Announcement of feature flags plus set of assets that can be included into the channel
+
+#### `open_channel`
+Since this message is the first step toward creating the funding transaction and both versions of the commitment transaction, we need to announce the other party following information, required for constructing proper transactions:
+* Array consisting of pairs of `asset_id` and `amount` which will be included into the channel
+* Proof history confirming the ownership of the asset (PROBLEM: how to transfer large proof history that does not fit into the message? May be we can provide a link to the service from which the history can be accessed?)
+
+#### `accept_channel`
+The same data as provided by the `open_channel`, except the proof history, to confirm the acceptance of the channel
+
+#### `update_add_htlc`
+* Array consisting of pairs of `asset_id` and `amount` for the balances that has to be added to the channel state for either routed payments or direct settlement.
+
+
 ### Extra considerations
 
 * Since the `short_channel_id` cannot be changed, we plan to treat each "colored" channel as multiple virtual channels running on top of a "physical" channel (which, has a precise `short_channel_id`). Signaling of the additional colors is challenging: being compatible with the current [`channel_announcement` message](https://github.com/lightningnetwork/lightning-rfc/blob/master/07-routing-gossip.md#the-channel_announcement-message) is a huge plus, but there's very little space to pack extra information into it. Our best bet right now, is to reserve another odd feature bit, to signal that additional info are coded into the feature bits themselves, and then use the variable-length space to encode the list of `asset_id`s running on that channel.
