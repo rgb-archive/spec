@@ -1,4 +1,4 @@
-# Quicksilver Framework
+# OpenSeals Framework
 
 * [Overview](#overview)
   * [Definitions](#definitions)
@@ -26,7 +26,7 @@
 
 ## Overview
 
-Quicksilver framework allows creation of "dark" (private) state-managing systems and networks, where the **state** is, 
+OpenSeals framework allows creation of "dark" (private) state-managing systems and networks, where the **state** is, 
 for instance, information on distribution and ownership of some asset; unspent balances or cross-linked immutable data 
 structures. The state is shared between selected peers in a trustless manner, maintained in a form of DAG on top of 
 Bitcoin blockchain. The framework can also operate on top of different Layer 2 technologies, like Lightning Network, 
@@ -34,7 +34,7 @@ Eltoo, etc.
 
 ### Definitions
 
-Quicksilver is a framework for a distributed state, where consensus on the state is achieved using combined mechanics of 
+OpenSeals is a framework for a distributed state, where consensus on the state is achieved using combined mechanics of 
 **client-side validation** for off-chain data and verification of cryptographic commitments embedded into LNP/BP 
 transaction outputs (**single-use seals**). The state is maintained in a form of size-efficient cross-linked **proofs** 
 organized as a **directed acyclic graph** (DAG), stored and validated by peers without a need to trust each other.
@@ -101,7 +101,7 @@ the set of state controlling parties (owners).
 
 ### Cryptographic commitments
 
-Quicksilver uses two types of on-chain cryptographic commitment to bind the proofs immutability to immutability
+OpenSeals uses two types of on-chain cryptographic commitment to bind the proofs immutability to immutability
 properties of bitcoin transactions:
 * Pay-to-contract (P2C)
 * OP_RETURN-based (ORB) 
@@ -118,7 +118,7 @@ The reason of pay-to-contract being the default type is the reduction of Bitcoin
 Each state seal must be unsealed only once, when the transaction output binding the state is spent. There also MUST BE 
 a single deterministic way of detecting the proof assigned to the sealed state change, so it would not be possible to
 create several different versions of the state change proof for the given unsealed output. In order to achieve this,
-Quicksilver defines a single way to find which specific transaction output (for the transaction spending sealed outputs)
+OpenSeals defines a single way to find which specific transaction output (for the transaction spending sealed outputs)
 MUST contain cryptographic commitment with either P2C or ORB commitment schemes. 
 
 The algorithm is designed in a way that helps to keep information of the output containing commitment private from any 
@@ -175,10 +175,10 @@ However, since the tweaking is already widely used practice
 [MAST](https://github.com/bitcoin/bips/blob/master/bip-0114.mediawiki) and many other proposals, the hash, used for 
 public key tweaking under one standard (like this one) can be provided to some uninformed third-party as a commitment 
 under the other standard (like Taproot), and there is non-zero chance of a collision, when serialized proof will present 
-at least a partially-valid Bitcoin script or other code that can be interpreted as a custom non-Quicksilver data 
+at least a partially-valid Bitcoin script or other code that can be interpreted as a custom non-OpenSeals data 
 and used to attack that third-party. In order to reduce the risk, we follow the practice introduced in the 
 [Taproot BIP proposal](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) of prefixing 
-the proof hash with *two* hashes of Quicksilver-specific tags, namely "quicksilver". Two hashes are required to 
+the proof hash with *two* hashes of OpenSeals-specific tags, namely "openseal". Two hashes are required to 
 further reduce risk of undesirable collisions, since nowhere in the Bitcoin protocol the input of SHA256 starts with 
 two (non-double) SHA256 hashes <https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes>.
 
@@ -189,7 +189,7 @@ The whole algorithm thus looks in the following way:
 1. Get result of `hash(message, tag) := SHA256(SHA256(tag) || SHA256(tag) || message)` function
    (see [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) for the details),
    where `message` MUST contain concatenated original public key `original_pubkey` and proof's `id`:
-   `h = hash(original_pubkey || id, 'quicksilver')`
+   `h = hash(original_pubkey || id, 'openseal')`
 2. Compute `new_pubkey = original_pubkey + h * G`
 3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pubkey` as public key
 
@@ -205,25 +205,25 @@ A transaction committed to a proof using ORB type is considered valid if:
 1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
    pays an arbitrary amount of satoshis to `OP_RETURN` output
 2. This output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to 
-   (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'quicksilver' tag: 
-   `OP_RETURN <SHA256('quicksilver' || SHA256(serialized_proof))>`
+   (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'openseal' tag: 
+   `OP_RETURN <SHA256('openseal' || SHA256(serialized_proof))>`
 
 
 ### Schemata
 
-The schema in quicksilver defines the exact structure of a seal-bound state, including:
+The schema in openseal defines the exact structure of a seal-bound state, including:
 * relation between the seals pointing to transaction outputs and parts of the state
 * structure for the state data and metadata 
 * serialization and deserealization rules for state data and metadata (see [Proof data structure](#proof) section)
-* rules to validate the state and state changes on top of the validation runes used by the Quicksilver
+* rules to validate the state and state changes on top of the validation runes used by the OpenSeals
 
-The schema can be defined in formal or an informal name. One of Quicksilver schema samples is an 
+The schema can be defined in formal or an informal name. One of OpenSeals schema samples is an 
 [RGB protocol](04-RGB.md), defining RGB schema for digital asset (digitalized securities, collectibles etc) issuing 
 and transfer.
 
 Schemata are identified by a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or 
 SHA256-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
-Quicksilver-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
+OpenSeals-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
 in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
 
 
@@ -239,9 +239,9 @@ the scratch.
 There are two main types of the proofs: **root proof** and normal proofs. The root proof is the source for the state, 
 i.e. it represents DAG root node. Root proof MUST start with a root flag (the highest bit in the first byte = 1) and
 MUST contain special additional fields absent in the rest of proofs: 
-* `ver`, specifying the Quicksilver framework version used for proof serialization, interpretation and verification. 
+* `ver`, specifying the OpenSeals framework version used for proof serialization, interpretation and verification. 
   This field MUST BE masked with the highest bit set to `1` (to signal the root proof). The current document defines 
-  version 1 for the Quicksilver framework.
+  version 1 for the OpenSeals framework.
 * `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction containing
   an output committed to the root proof. This mechanism is necessary to prevent possible double-publication of the root
   proof and ambiguity in the state.
@@ -376,7 +376,7 @@ Field         | Type                    | Description
 
 Field        | Serialized       | Committed | Optionality  | Description
 ------------ | ---------------- | --------- | ------------ | -----------
-`ver`        | `byte`           | yes       | only in root | Version of the quicksilver protocol having the highest bit set to `1`
+`ver`        | `byte`           | yes       | only in root | Version of the OpenSeals protocol having the highest bit set to `1`
 `root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity.
 `schema`     | `RIPMD160`       | yes       | only in root | Schema ID applied to parse the `data` and `meta` fields.
 `network`    | `byte`           | yes       | only in root | Network to which this root proof is deployed: Mainnet, testnet etc

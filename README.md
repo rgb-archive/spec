@@ -7,11 +7,11 @@ Basic information about the project can be provided by the developers in the [Te
 
 
 # RGB Protocol Specifications
-1. [Quicksilver framework](01-Quicksilver.md) – a framework defining distributed state management mechanics used by
+1. [OpenSeals framework](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
    RGB to issue and account issued assets on top of LNP/BP stack.
-2. [Silverwire](02-Silverwire.md) – Wire protocol for Quicksilver P2P node communications
-3. [Spectrum](03-Spectrum.md) – Lightning Network gossip protocol extensions for Quicksilver
-4. [RGB](04-RGB.md) – Digital asset issuing and management based on Quicksilver framework
+2. [Wire oriticik](02-Wire.md) – Wire protocol for Quicksilver P2P node communications
+3. [Spectrum](03-Spectrum.md) – Lightning Network gossip protocol extensions for OpenSeals
+4. [RGB](04-RGB.md) – Digital asset issuing and management based on OpenSeals framework
 
 # Donations
 Donations are welcome: `1RGB1TAg6xrUJmvWQqc5Q1SmjdLSCzdnu`

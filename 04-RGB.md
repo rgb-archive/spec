@@ -1,8 +1,8 @@
-# RGB: Digital assets on LNP/BP stack with Quicksilver framework
+# RGB: Digital assets on LNP/BP stack with OpenSeals framework
 
 The protocol allows initial and secondary issuance, upgrades, transfers of digital assets (securities, collectionables 
-etc) on top of LNP/BP technology stack and [Quicksilver framework](01-Quicksilver.md). With RGB protocol the assets 
-can be issued, re-issued, updated, transferred using different types of Quicksilver proofs, as defined with 
+etc) on top of LNP/BP technology stack and [OpenSeals framework](01-OpenSeals.md). With RGB protocol the assets 
+can be issued, re-issued, updated, transferred using different types of OpenSeals proofs, as defined with 
 [RGB schema definition](#rgb-schema).
 
 
