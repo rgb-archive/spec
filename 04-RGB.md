@@ -5,6 +5,27 @@ etc) on top of LNP/BP technology stack and [OpenSeals framework](01-OpenSeals.md
 can be issued, re-issued, updated, transferred using different types of OpenSeals proofs, as defined with 
 [RGB schema definition](#rgb-schema).
 
+## Details of implementation
+
+### Versioning
+
+The proofs MUST stick to the version provided by the parent proofs. If the issuers of some of the assets under the proof 
+has not adopted (according to the [algotithm](#upgrade)) the highest version which is adopted by the other assets from 
+the proof, these assets MUST be transferred by a separate proof.
+
+The asset issuer must announce that he supports the update by committing to an appropriate 
+[asset version upgrade proof](#asset-version-upgrade). All the asset owners which would like to upgrade the asset 
+will be publishing a new **version upgrade proof** (NB: this is defined not by RGB, but by OpenSeals framework and
+is different from the asset version upgrade proof) committed to the transaction in a block with bigger height that the
+asset version upgrade proof. Version upgrade proof proof MUST use and MUST BE validated with the commitment rules from 
+the *previous* version, as specified by the OpenSeals framework. All the descending proofs after this first 
+proof adapting the new major version MUST adapt and MUST BE validated with the new commitment rules as defined by the 
+new version specification.
+
+The schema upgrade is done in the same way except that the *version upgrade proof* has to be serialized with the new
+schema rules.
+
+There is no possibility to downgrade the version of the proofs that has adopted a commitment or a scheme upgrade.
 
 ## Schema definition
 
@@ -12,8 +33,6 @@ can be issued, re-issued, updated, transferred using different types of OpenSeal
 
 Field           | Type         | Description
 --------------- | ------------ | -----------------------------------------------------------------------
-`ver_major`     | `u16`        | Version number, major par
-`ver_minor`     | `u8`         | -"-, minor part
 `title`         | `String`     | Title of the asset
 `description`   | `String`     | Description for the asset
 `contract_url`  | `String`     | Unique url for the publication of the contract and the light-anchors
@@ -102,8 +121,8 @@ Seals:
 
 ```yaml
 meta_fields:
-  - &ver ver: fvi
-  - &ver_minor ver_minor: u8
+  - &ver ver: u8
+  - &schema ver: sha256
   - &title title: str
   - &description description: str
   - &url url: str
@@ -118,7 +137,6 @@ seal_types:
 proof_types:
   - title: 'Primary issue'
     meta:
-      - *ver: 1
       - *title: 0..1
       - *description: 0..1
       - *url: 0..1
@@ -143,6 +161,7 @@ proof_types:
     unseals: *upgrade
     meta_fields:
       - *ver: 1
+      - *schema: 0..1
       - *signature: 0..1
     seal_types:
       - *upgrade: 1

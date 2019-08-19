@@ -7,8 +7,10 @@
 * [Protocol details](#protocol-details)
   * [Single use seals](#single-use-seals)
   * [Cryptographic commitments](#cryptographic-commitments)
+    * [Deterministic definition of committed output](#deterministic-definition-of-committed-output)
     * [Pay-to-contract commitments](#pay-to-contract)
     * [OP_RETURN-based commitments](#op_return-based)
+    * [Commitment versioning](#commitment-versioning)
   * [Schema](#schemata)
   * [Proofs](#proofs)
   * [State](#state)
@@ -39,14 +41,30 @@ OpenSeals is a framework for a distributed state, where consensus on the state i
 transaction outputs (**single-use seals**). The state is maintained in a form of size-efficient cross-linked **proofs** 
 organized as a **directed acyclic graph** (DAG), stored and validated by peers without a need to trust each other.
 
+Proofs are dually-bounded to the Bitcoin blockchain with seals and commitments. Each proof **seals** some **state** to
+particular transaction output(s) and **commits** to some transaction that spends one of the outputs sealed by 
+**parent** proof(s); this process of state change is named **unsealing**. All the history of the state preceding the 
+state sealed by some proof `A` is called **ancestor proofs** for `A` and forms a part of global DAG named 
+**ancestry DAG** of `A`. Ancestry DAG represents subgraph of the overall DAG always starting at the same root point, 
+named **root proof**, that defines initial **root state**.
+
+Each time a transaction output sealed by some proof is spent (*unsealed*), the proof becomes **historical proof** and
+a new proof defining new state must be created and committed to the transaction spending outputs of these 
+*parent proofs*. From the point of view of the `X` *historical proof* the proofs that directly unseals its state is
+called **child proofs**, and the whole DAG subgraph composed of all proofs unsealing at least some of the states of
+the *child proofs* is named **descending graph**. **Root proof** is an origination point for a **state DAG**, which 
+includes all descending proofs of the root proof.
+
+
 ### Core concepts and features
 
 In order to ensure immutability and achieve consensus, it's necessary to strongly bind state changes to Bitcoin 
 transaction outputs in a way that makes impossible to modify the state in any other way without invalidating it. 
 This is achieved by using cryptographic commitments, i.e. by embedding commitment to the hash of the state change 
 (named hereinafter a **proof**) into a Bitcoin transaction output – pretty much like it is done in the 
-[OpenTimeStamps](https://opentimestamps.org/). This mechanism is called **single-use seals** and was originally proposed 
-by Peter Todd.
+[OpenTimeStamps](https://opentimestamps.org/). This mechanism is called **single-use seals** and was 
+[originally proposed](https://petertodd.org/2016/commitments-and-single-use-seals) by Peter Todd. This proposal extends
+original concept into a more generic case.
 
 The main distinguishing features of the framework are the following:
 
@@ -65,9 +83,13 @@ The main distinguishing features of the framework are the following:
 
 ### Previous work
 
-The initial idea for the technology comes from Peter's Todd and Giacomo Zucco concepts and ideas of proof-of-publication
-timestamping (OpenTimeStamps), single-use-seals and client-side validation, as was proposed in the original concept for
-Bitcoin-based asset protocol (RGB).
+The initial idea for the technology comes from Peter's Todd and Giacomo Zucco concepts and ideas of 
+[proof-of-publication](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2014-December/006982.html)
+timestamping ([OpenTimeStamps](https://petertodd.org/2016/opentimestamps-announcement)),
+[single-use-seals](https://building-on-bitcoin.com/docs/slides/Peter_Todd_BoB_2018.pdf) 
+and client-side validation, as was proposed in the original concept for
+[Bitcoin-based assets](https://petertodd.org/2017/scalable-single-use-seal-asset-transfer) and 
+[RGB protocol](https://github.com/rgb-org/spec/tree/74e9e196129adeae345c7b76c02a89c6814ace2f).
 
 
 ## Protocol details
@@ -208,7 +230,6 @@ A transaction committed to a proof using ORB type is considered valid if:
    (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'openseal' tag: 
    `OP_RETURN <SHA256('openseal' || SHA256(serialized_proof))>`
 
-
 ### Schemata
 
 The schema in openseal defines the exact structure of a seal-bound state, including:
@@ -236,21 +257,31 @@ to keep and transfer them is the performance: some data will require significant
 recomputed, and it will be much easier to check their correctness having the data itself than to re-compute them from
 the scratch.
 
-There are two main types of the proofs: **root proof** and normal proofs. The root proof is the source for the state, 
-i.e. it represents DAG root node. Root proof MUST start with a root flag (the highest bit in the first byte = 1) and
-MUST contain special additional fields absent in the rest of proofs: 
-* `ver`, specifying the OpenSeals framework version used for proof serialization, interpretation and verification. 
-  This field MUST BE masked with the highest bit set to `1` (to signal the root proof). The current document defines 
-  version 1 for the OpenSeals framework.
-* `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction containing
-  an output committed to the root proof. This mechanism is necessary to prevent possible double-publication of the root
-  proof and ambiguity in the state.
-* `schema`: a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or SHA256-hash of 
-  serialized formal schema definition data
-* `network`: Bitcoin network in use (mainnet, testnet)
+#### PRoof formats
 
-A special form of the proof, [Proof of state destruction](#proof-of-state-destruction) can be constructed just by
-creating a normal proof with zero seals.
+There are four main formats of the proofs: 
+* **Root proof**, which define the source for the state, i.e. it represents DAG root node. Root proof MUST start with 
+  a root flag (the highest bit in the first byte = 1) followed by a second byte with `0x00` value (see 
+  [prof serialization format](#proof-serialization-formats) for the details) and MUST contain special additional 
+  fields absent in the rest of proofs: 
+  * `ver`, specifying the OpenSeals framework version used for proof serialization, interpretation and verification. 
+    This field MUST BE masked with the highest bit set to `1` .
+  * `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction containing
+    an output committed to the root proof. This mechanism is necessary to prevent possible double-publication of the root
+    proof and ambiguity in the state.
+  * `schema`: a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or SHA256-hash of 
+    serialized formal schema definition data
+  * `network`: Bitcoin network in use (mainnet, testnet)
+* **Version upgrade proofs**, that signal OpenSeals version upgrade for all *descendant proofs* according to the
+  [version upgrade procedure](#versioning). These proofs has the following additional fields:
+  * `ver`, specifying a new OpenSeals framework version used for proof serialization, interpretation and verification. 
+    This field MUST BE masked with the highest bit set to `1`.
+  * `schema`: a cryptographic SHA256-hash of the updated schema name (for informally-defined schemas) or SHA256-hash of 
+    serialized formal schema definition data. If the proof does not assign a new schema, this field must be set to
+    256 zero bits.
+* **Normal proofs**
+* **[Proof of state destruction](#proof-of-state-destruction)** is a special form of the proof that is a normal proof 
+  with zero seals.
 
 
 ### State
@@ -280,7 +311,49 @@ which is a normal proof with zero seals, and commit it with either P2C or ORB co
 published in order to prove that the part of the state was really destroyed.
 
 
+### Versioning
+
+OpenSeals framework, in order to allow future enhancements to the used commitment protocols and proof validation 
+mechanics supports **versioning**.
+
+Versioning defines:
+* which cryptographic commitments are allowed and how the proofs have to be validated regarding the commitment rules;
+* which format is defined for parsing serialized proofs and schema files;
+* which schema version is used by the proofs.
+
+#### Commitment and serialization versioning with `ver` field
+
+The first two parts are defined using generic versioning field, present in *root* and *version upgrade proofs*. This
+
+The version used by other proofs is defined by the [root proof](#proof-formats), and *state DAG* MUST by default
+follow the version provided by the *root proof*. However, it is possible to update the version using special 
+[**version upgrade proof**](#proof-formats), signifying that all *descendant proofs* of it must follow the new updated 
+OpenSeal version.
+
+A special attention must be paid to such version upgrades. These updates, in order to address the associated risk of
+"double-spent attack" (or, multiple conflicting state changes), MUST follow very specific procedure:
+1. An on-chain committed valid *version upgrade proof* defines a new version for all descending proofs **except** itself.
+   This proof MUST use and MUST BE validated with the commitment scheme rules from the *previous* version.
+3. All the descending proof unsealing at lease some of the seals defined by the *version upgrade proof* adapting a new
+   version MUST adapt and MUST BE validated with the new commitment scheme as defined by the new version specification.
+4. There is no possibility to downgrade the version of the proofs that has adopted a commitment scheme upgrade.
+
+Creators of the *state DAG* (i.e. publishers of the *root proof*) MAY specify additional rules for version upgrade
+mechanics, like presence of specially-designed normal proof signaling their support for the version upgrade (see, for
+example, version upgrades in the [RGB protocol](./04-RGB.md)).
+
+#### Schema version upgrades
+
+The third form of versioning allows modification of the proof `meta`, `state` and `seals` format with migration to a 
+newer schema version. This upgrade is performed also using *version upgrade proofs* with non-zero *schema* field
+(see [proof serialization formats](#proof-serialization-formats) for more information). Unlikely commitment serialization
+a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants.
+
+
 ## Data structures
+
+The following chapters explain the exact data structure and serialization format for different entities which constitute
+parts of OpenSeals framework.
 
 ### Schema
 
@@ -376,20 +449,40 @@ Field         | Type                    | Description
 
 Field        | Serialized       | Committed | Optionality  | Description
 ------------ | ---------------- | --------- | ------------ | -----------
-`ver`        | `byte`           | yes       | only in root | Version of the OpenSeals protocol having the highest bit set to `1`
+`ver`        | `byte`           | yes       | optional     | Version of the OpenSeals protocol, with the highest bit always set to `1`
+`flag`       | `byte`           | yes       | optional*    | Special flag specifying **version upgrade proofs** (see [Proof types](#proof-serialization-formats) below)
+`schema`     | `SHA256`         | yes       | root & version upgrades | Schema ID applied to parse the `data` and `meta` fields.
 `root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity.
-`schema`     | `RIPMD160`       | yes       | only in root | Schema ID applied to parse the `data` and `meta` fields.
 `network`    | `byte`           | yes       | only in root | Network to which this root proof is deployed: Mainnet, testnet etc
-`pubkey`     | `PubKey`         | yes*      | for P2C only | Original public key before the key tweaking procedure applied
-`seals`      | [`FlagVarInt`](#flagvarint)`[Seal]` | yes | obligatory | References to sealed txouts or vouts. Must always start with a highest bit = `0` in order to distinguish normal proofs from root proofs (which have the highest byte in the first bet = `1`)
+`pubkey`     | `PubKey`         | yes**     | for P2C only | Original public key before the key tweaking procedure applied
+`seals`      | [`FlagVarInt`](#flagvarint)`[Seal]` | yes | obligatory*** | References to sealed txouts or vouts. Must always start with a highest bit = `0` in order to distinguish normal proofs from root proofs (which have the highest byte in the first bet = `1`)
 `state`      | `VarInt[bytes]`  | yes       | obligatory   | Sealed state: some data structures linked to the sealed transaction outputs
 `metadata`   | `VarInt[bytes]`  | yes       | obligatory   | Metadata representing additional information other then the sealed data
 `parents`    | `VarInt[SHA256]` | no        | prunable     | List of parent proofs some of which seals are unsealed by the current proof (the field MAY BE added for performance reasons)
 `txid`       | `TxId`           | no        | prunable     | Transaction ID that contains an output with the commitment to the proof (the field MAY BE added for performance reasons)
 
-* — `pubkey` is committed not into a hash of the proof, but as a part of tagged [P2C commitment](#pay-to-contract).
+* - MUST BE present if the highest bit of the `ver` is set to `1` (see [Proof types](#proof-serialization-formats) below)
+** — `pubkey` is committed not into a hash of the proof, but as a part of tagged [P2C commitment](#pay-to-contract).
+*** — has zero member for [proofs of state destruction](#proof-of-state-destruction)
 
-The structure of a smallest normal P2C-committed proof will be around 38 bytes.
+This serialization format is designed in a way that allows to maintain the smallest size for *normal proofs*, to reduce
+necessary off-chain data storage as much as possible. Our estimation for a size of a smallest normal P2C-committed proof 
+is around 38 bytes.
+
+#### Proof serialization formats
+
+Proofs by their serialization structure may be one of the following types:
+* **Root proofs** having the highest bit of the first byte of the proof is set to `1`, the rest of bits representing
+  OpenSeals framework version used to parse the proof, which are followed by `0x00` byte. In other words, root proofs
+  are defined by `1*** **** 0000 0000`binary signature of the first two bytes (where `*` denotes any possible value for 
+  the corresponding bit).
+* **Version upgrade proofs** having the highest bit of the first byte of the proof is set to `1`, the rest of bits 
+  representing OpenSeals framework version used to parse all descendant proofs. The first byte MUST BE followed by
+  which are followed by `0xFF` byte. In other words, root proofs are defined by `1*** **** 1111 1111`binary signature of 
+  the first two bytes (where `*` denotes any possible value for the corresponding bit). Version upgrade proofs are used
+  to signify [upgrades of the OpenSeals version](#versioning). If the proof does not provides a new schema, the schema
+  field MUST BE set to 256 zero bits.
+* **Normal proofs** and **proofs of state destruction** having binary signature in form of `0*** ****`.
 
 #### Seal
 
