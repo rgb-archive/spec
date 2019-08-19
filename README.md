@@ -9,9 +9,11 @@ Basic information about the project can be provided by the developers in the [Te
 # RGB Protocol Specifications
 1. [OpenSeals framework](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
    RGB to issue and account issued assets on top of LNP/BP stack.
-2. [Wire oriticik](02-Wire.md) – Wire protocol for Quicksilver P2P node communications
-3. [Spectrum](03-Spectrum.md) – Lightning Network gossip protocol extensions for OpenSeals
-4. [RGB](04-RGB.md) – Digital asset issuing and management based on OpenSeals framework
+2. [LightningNetwork](02-LightningNetwork.md) – implementation of OpenSeals for Lightning Network channels
+3. [Wire protocol](03-Wire.md) – wire protocol for OpenSeals P2P node communications
+4. [RGB](04-RGB.md) – digital asset issuing and management based on OpenSeals framework
+5. [Spectrum](05-Spectrum.md) – Lightning Network extension for asset liquidity provisioning (DEX)
+6. [ConfidentialAssets](06-ConfidentialAssets.md) – confidential assets interoperability
 
 # Donations
 Donations are welcome: `1RGB1TAg6xrUJmvWQqc5Q1SmjdLSCzdnu`
