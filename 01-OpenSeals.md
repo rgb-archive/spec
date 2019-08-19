@@ -10,12 +10,14 @@
     * [Deterministic definition of committed output](#deterministic-definition-of-committed-output)
     * [Pay-to-contract commitments](#pay-to-contract)
     * [OP_RETURN-based commitments](#op_return-based)
-    * [Commitment versioning](#commitment-versioning)
-  * [Schema](#schemata)
+  * [Schemata](#schemata)
   * [Proofs](#proofs)
   * [State](#state)
     * [Multi-signature state ownership](#multi-signature-state-ownership)
     * [Proof of state destruction](#proof-of-state-destruction)
+  * [Versioning](#versioning)
+    * [Commitment and serialization versioning](#commitment-and-serialization-versioning-with-ver-field)
+    * [Schema version upgrades](#schema-version-upgrades)
 * [Data structures](#data-structures)
   * [Schema](#schema)
     * [MetaField](#metafield)
@@ -50,7 +52,7 @@ named **root proof**, that defines initial **root state**.
 
 Each time a transaction output sealed by some proof is spent (*unsealed*), the proof becomes **historical proof** and
 a new proof defining new state must be created and committed to the transaction spending outputs of these 
-*parent proofs*. From the point of view of the `X` *historical proof* the proofs that directly unseals its state is
+*parent proofs*. From the point of view of the `X` *historical proof* the proofs that directly unseals its state are
 called **child proofs**, and the whole DAG subgraph composed of all proofs unsealing at least some of the states of
 the *child proofs* is named **descending graph**. **Root proof** is an origination point for a **state DAG**, which 
 includes all descending proofs of the root proof.
@@ -257,7 +259,7 @@ to keep and transfer them is the performance: some data will require significant
 recomputed, and it will be much easier to check their correctness having the data itself than to re-compute them from
 the scratch.
 
-#### PRoof formats
+#### Pкoof formats
 
 There are four main formats of the proofs: 
 * **Root proof**, which define the source for the state, i.e. it represents DAG root node. Root proof MUST start with 
@@ -325,10 +327,10 @@ Versioning defines:
 
 The first two parts are defined using generic versioning field, present in *root* and *version upgrade proofs*. This
 
-The version used by other proofs is defined by the [root proof](#proof-formats), and *state DAG* MUST by default
-follow the version provided by the *root proof*. However, it is possible to update the version using special 
-[**version upgrade proof**](#proof-formats), signifying that all *descendant proofs* of it must follow the new updated 
-OpenSeal version.
+The version used by other proofs is defined by the [root proof](#proof-serialization-formats), and *state DAG* MUST by 
+default follow the version provided by the *root proof*. However, it is possible to update the version using special 
+[**version upgrade proof**](#proof-serialization-formats), signifying that all *descendant proofs* of it must follow 
+the new updated OpenSeal version.
 
 A special attention must be paid to such version upgrades. These updates, in order to address the associated risk of
 "double-spent attack" (or, multiple conflicting state changes), MUST follow very specific procedure:
