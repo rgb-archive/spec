@@ -363,6 +363,9 @@ data types for metadata fields, state and seals; than it lists definitions for p
 
 Field         | Serialization format    | Description
 ------------- | ----------------------- | -----------------------
+`name`        | `String`                | Schema name (human-readable string)
+`schema_ver`  | `VarInt`, `u8`, `u8`    | Schema version in [semantic versioning format](https://semver.org/)
+`prev_schema` | `SHA256`                | Previous schema version reference or 256 zero-bits for the first schema definition
 `meta_fields` | `VarInt[`[`MetaField`](#metafield)`]` | Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
 `state_types` | `VarInt[`[`StateType`](#statetype)`]` | Definition of all possible state types that will be managed by the proofs
 `seal_types`  | `VarInt[`[`SealType`](#sealtype)`]`   | Definition of different seal types that can be used by the proofs 

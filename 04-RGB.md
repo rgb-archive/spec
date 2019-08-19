@@ -33,6 +33,7 @@ There is no possibility to downgrade the version of the proofs that has adopted 
 
 Field           | Type         | Description
 --------------- | ------------ | -----------------------------------------------------------------------
+`ticker`        | `String`     | Ticker name for the asset
 `title`         | `String`     | Title of the asset
 `description`   | `String`     | Description for the asset
 `contract_url`  | `String`     | Unique url for the publication of the contract and the light-anchors
@@ -67,10 +68,10 @@ State type  | Data type | Description
 Root proof type
 
 Fields:
+* `ticker`: optional
 * `title`: obligatory
-* `description`: obligatory
+* `description`: optional
 * `contract_url`: optional
-* `issued_supply`: obligatory
 * `max_supply`: optional
 * `dust_limit`: optional
 * `signature`: optional
@@ -81,11 +82,17 @@ Seals:
 * `pruning`: 1
 * `assets`: 1 or more
 
+Issued supply of the asset is defined by the total amount sealed with `asset` seals.
+
 #### Secondary asset issuances
 
 The proof unsealing `inflation` seals
 * `issued_supply`: obligatory
 * `signature`: optional
+
+Fields:
+* `ver`: obligatory
+* `schema`: obligatory; if filled with 0-bits signifies no schema upgrade
 
 Seals:
 * `inflation`: 0 or 1
@@ -120,9 +127,13 @@ Seals:
 ### Schema data
 
 ```yaml
+name: RGB
+schema_ver: 1.0.0
+prev_schema: 0
 meta_fields:
   - &ver ver: u8
-  - &schema ver: sha256
+  - &schema schema: sha256
+  - &ticker ticker: str
   - &title title: str
   - &description description: str
   - &url url: str
@@ -137,6 +148,7 @@ seal_types:
 proof_types:
   - title: 'Primary issue'
     meta:
+      - *ticker: 0..1
       - *title: 0..1
       - *description: 0..1
       - *url: 0..1
