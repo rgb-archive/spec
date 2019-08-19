@@ -6,20 +6,23 @@ can be issued, re-issued, updated, transferred using different types of Quicksil
 [RGB schema definition](#rgb-schema).
 
 
-## Meta field types
+## Schema definition
+
+### Meta field types
 
 Field           | Type         | Description
 --------------- | ------------ | -----------------------------------------------------------------------
+`ver_major`     | `u16`        | Version number, major par
+`ver_minor`     | `u8`         | -"-, minor part
 `title`         | `String`     | Title of the asset
 `description`   | `String`     | Description for the asset
 `contract_url`  | `String`     | Unique url for the publication of the contract and the light-anchors
-`issued_supply` | `u64`        | Total issued supply, using the smallest indivisible available unit
 `max_supply`    | `u64`        | A limit to the total amount of assets that may be issued by subsequent inflation contracts.
 `dust_limit`    | `u32`        | Minimum amount of assets that can be transferred together, like a dust limit in Lightning Network
 `signature`     | `VarInt[u8]` | Signature of the creator of the proof, which signs only committed part of the proof without the signature field
 
 
-## State types
+### State types
 
 State type  | Data type | Description
 ----------- | --------- | --------------
@@ -29,7 +32,7 @@ State type  | Data type | Description
 `prune`     | No value  | Right to prune parts of the asset history proofs
 
 
-## Seal types
+### Seal types
 
 * `assets`: asset balance output. Operates `amount` state type.
 * `inflation`: output for asset re-issuance. Can be set to 0 in order to disable asset re-issuance. Operates `inflation`
@@ -38,9 +41,9 @@ State type  | Data type | Description
 * `pruning`: output used to prune parts of the asset history proofs. Operators `prune` state type.
 
 
-## Proof types
+### Proof types
 
-### Initial asset issuance
+#### Initial asset issuance
 
 Root proof type
 
@@ -59,7 +62,7 @@ Seals:
 * `pruning`: 1
 * `assets`: 1 or more
 
-### Secondary asset issuances
+#### Secondary asset issuances
 
 The proof unsealing `inflation` seals
 * `issued_supply`: obligatory
@@ -71,14 +74,14 @@ Seals:
 * `pruning`: 1
 * `assets`: 1 or more
 
-### Asset version upgrade
+#### Asset version upgrade
 
 The proof unsealing `upgrade` seals
 
 Seals:
 * `upgrade`: 1
 
-### Asset history checkpruning
+#### Asset history checkpruning
 
 The proof unsealing `pruning` seals
 
@@ -87,7 +90,7 @@ Seals:
 * `pruning`: 1
 * `assets`: 1 or more
 
-### Asset transfer
+#### Asset transfer
 
 The proof unsealing `assets` seals
 
@@ -95,47 +98,66 @@ Seals:
 * `assets`: 1 or more
 
 
-## Schema data
+### Schema data
 
 ```yaml
 meta_fields:
-  - [ 'title', 0x00 ]
-  - [ 'description', 0x00 ]
-  - [ 'contract_url', 0x00 ]
-  - [ 'issued_supply', 0x04 ]
-  - [ 'max_supply', 0x04 ]
-  - [ 'dust_limit', 0x03 ]
-  - [ 'signature', 0x20 ]
-state_types:
-  - [ 'amount', 0x01 ]
-  - [ 'inflation', 0x00 ]
-  - [ 'upgrade', 0x00 ]
-  - [ 'prune', 0x00 ]
+  - &ver ver: fvi
+  - &ver_minor ver_minor: u8
+  - &title title: str
+  - &description description: str
+  - &url url: str
+  - &max_supply max_supply: u64
+  - &dust_limit dust_limit: u64
+  - &signature signature: signature
 seal_types:
-  - [ 'assets', 0x00 ]
-  - [ 'inflation', 0x01 ]
-  - [ 'upgrade', 0x02 ]
-  - [ 'pruning', 0x03 ]
+  - &assets assets: balance
+  - &inflation inflation: none
+  - &upgrade upgrade: none
+  - &pruning pruning: none
 proof_types:
   - title: 'Primary issue'
-    meta_fields: [ [0, 0], [1, 0], [2, 1], [3, 0], [4, 1], [5, 0], [6, 1] ]
-    seal_types: [ [0, 1, -1 ], [1, 0, 1], [2, 1, 1], [3, 1, 1] ]
+    meta:
+      - *ver: 1
+      - *title: 0..1
+      - *description: 0..1
+      - *url: 0..1
+      - *max_supply: 0..1
+      - *dust_limit: 1
+      - *signature: 0..1
+    seals:
+      - *assets: 1..
+      - *inflation: 0..1
+      - *upgrade: 1
+      - *pruning: 1
   - title: 'Secondary issue'
-    unseals: 1
-    meta_fields: [ [3, 0], [6, 1] ]
-    seal_types: [ [0, 1, -1 ], [1, 0, 1], [2, 1, 1], [3, 1, 1] ]
+    unseals: *inflation
+    meta_fields:
+      - *url: 0..1
+      - *signature: 0..1
+    seal_types:
+      - *assets: 1..
+      - *inflation: 0..1
+      - *pruning: 1
   - title: 'Asset version upgrade'
-    unseals: 2
-    meta_fields: [ [0, 1, -1], [2, 1, 1], [3, 1, 1] ]
-    seal_types: [ [2, 1, 1] ]
-  - title: 'Asset history checkpruning'
-    unseals: 3
+    unseals: *upgrade
+    meta_fields:
+      - *ver: 1
+      - *signature: 0..1
+    seal_types:
+      - *upgrade: 1
+  - title: 'Asset history pruning'
+    unseals: *pruning
     meta_fields: [ ]
-    seal_types: [ [2, 1, 1] ]
+    seal_types:
+      - *assets: 1..
+      - *pruning: 1
   - title: 'Asset transfer'
-    unseals: 0
-    meta_fields: [ ]
-    seal_types: [ [0, 1, -1] ]
+    unseals: *assets
+    meta_fields:
+      - *ver: 1
+    seal_types:
+      - *assets: 1..
 ```
 
 ```
