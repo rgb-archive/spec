@@ -42,23 +42,13 @@ Field           | Type         | Description
 `signature`     | `VarInt[u8]` | Signature of the creator of the proof, which signs only committed part of the proof without the signature field
 
 
-### State types
-
-State type  | Data type | Description
------------ | --------- | --------------
-`amount`    | Balance   | Asset amount
-`inflation` | No value  | Right to inflate the asset supply
-`upgrade`   | No value  | Right to upgrade major version number of the asset proof format
-`prune`     | No value  | Right to prune parts of the asset history proofs
-
-
 ### Seal types
 
-* `assets`: asset balance output. Operates `amount` state type.
-* `inflation`: output for asset re-issuance. Can be set to 0 in order to disable asset re-issuance. Operates `inflation`
-  state type.
-* `upgrade`: output for upgrading major version number of the asset proof format. Operates `upgrade` state type.
-* `pruning`: output used to prune parts of the asset history proofs. Operators `prune` state type.
+* `assets`: asset balance output. Operates `balance` state.
+* `inflation`: output for asset re-issuance. Can be set to 0 in order to disable asset re-issuance. 
+  Has no associated state.
+* `upgrade`: output for upgrading major version number of the asset proof format. Has no associated state.
+* `pruning`: output used to prune parts of the asset history proofs.   Has no associated state.
 
 
 ### Proof types
@@ -86,7 +76,9 @@ Issued supply of the asset is defined by the total amount sealed with `asset` se
 
 #### Secondary asset issuances
 
-The proof unsealing `inflation` seals
+The proof MUST BE unsealing exactly one `inflation` seal
+
+The proof seals:
 * `issued_supply`: obligatory
 * `signature`: optional
 
@@ -102,14 +94,14 @@ Seals:
 
 #### Asset version upgrade
 
-The proof unsealing `upgrade` seals
+The proof MUST BE unsealing exactly one `upgrade` seal
 
 Seals:
 * `upgrade`: 1
 
 #### Asset history checkpruning
 
-The proof unsealing `pruning` seals
+The proof MUST BE unsealing exactly one `pruning` seal
 
 Seals:
 * `upgrade`: 1
@@ -118,10 +110,10 @@ Seals:
 
 #### Asset transfer
 
-The proof unsealing `assets` seals
+The proof MUST BE unsealing at least one of `assets` seals
 
 Seals:
-* `assets`: 1 or more
+* `assets`: 0 or more
 
 
 ### Schema data
@@ -130,63 +122,67 @@ Seals:
 name: RGB
 schema_ver: 1.0.0
 prev_schema: 0
-meta_fields:
-  - &ver ver: u8
-  - &schema schema: sha256
-  - &ticker ticker: str
-  - &title title: str
-  - &description description: str
-  - &url url: str
-  - &max_supply max_supply: u64
-  - &dust_limit dust_limit: u64
-  - &signature signature: signature
+field_types:
+  ver: u8
+  schema: sha256
+  ticker: str
+  title: str
+  description: str
+  url: str
+  max_supply: u64
+  dust_limit: u64
+  signature: signature
 seal_types:
-  - &assets assets: balance
-  - &inflation inflation: none
-  - &upgrade upgrade: none
-  - &pruning pruning: none
+  assets: balance
+  inflation: none
+  upgrade: none
+  pruning: none
 proof_types:
-  - title: 'Primary issue'
-    meta:
-      - *ticker: 0..1
-      - *title: 0..1
-      - *description: 0..1
-      - *url: 0..1
-      - *max_supply: 0..1
-      - *dust_limit: 1
-      - *signature: 0..1
+  - title: Primary issue
+    fields:
+      ticker: optional
+      title: optional
+      description: optional
+      url: optional
+      max_supply: optional
+      dust_limit: single
+      signature: optional
     seals:
-      - *assets: 1..
-      - *inflation: 0..1
-      - *upgrade: 1
-      - *pruning: 1
-  - title: 'Secondary issue'
-    unseals: *inflation
-    meta_fields:
-      - *url: 0..1
-      - *signature: 0..1
-    seal_types:
-      - *assets: 1..
-      - *inflation: 0..1
-      - *pruning: 1
-  - title: 'Asset version upgrade'
-    unseals: *upgrade
-    meta_fields:
-      - *ver: 1
-      - *schema: 0..1
-      - *signature: 0..1
-    seal_types:
-      - *upgrade: 1
-  - title: 'Asset history pruning'
-    unseals: *pruning
-    meta_fields: [ ]
-    seal_types:
-      - *assets: 1..
-      - *pruning: 1
-  - title: 'Asset transfer'
-    unseals: *assets
-    meta_fields:
-      - *ver: 1
-    seal_types:
-      - *assets: 1..
+      assets: many
+      inflation: optional
+      upgrade: single
+      pruning: single
+  - title: Secondary issue
+    unseals:
+      inflation: single
+    fields:
+      url: optional
+      signature: optional
+    seals:
+      assets: many
+      inflation: optional
+      pruning: single
+  - title: Asset version upgrade
+    unseals:
+      upgrade: single
+    fields:
+      ver: single
+      schema: optional
+      signature: optional
+    seals:
+      upgrade: single
+  - title: Asset history pruning
+    unseals:
+      pruning: single
+    fields: [ ]
+    seals:
+      assets: many
+      pruning: single
+  - title: Asset transfer
+    unseals:
+      assets: many
+    fields:
+      ver: single
+    seals:
+      assets: any
 ```

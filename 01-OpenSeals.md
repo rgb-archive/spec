@@ -229,8 +229,8 @@ A transaction committed to a proof using ORB type is considered valid if:
 1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
    pays an arbitrary amount of satoshis to `OP_RETURN` output
 2. This output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to 
-   (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'openseal' tag: 
-   `OP_RETURN <SHA256('openseal' || SHA256(serialized_proof))>`
+   (i.e. double SHA256 of serialized proof data, like in P2C commitments), prefixed with 'openseal' tag: 
+   `OP_RETURN <SHA256('openseal' || SHA256(SHA256(serialized_proof)))>`
 
 ### Schemata
 
