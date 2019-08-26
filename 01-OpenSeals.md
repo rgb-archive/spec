@@ -9,24 +9,27 @@
   * [Cryptographic commitments](#cryptographic-commitments)
     * [Deterministic definition of committed output](#deterministic-definition-of-committed-output)
     * [Pay-to-contract commitments](#pay-to-contract)
+      * [Public key tweaking procedure](#public-key-tweaking-procedure)
     * [OP_RETURN-based commitments](#op_return-based)
   * [Schemata](#schemata)
   * [Proofs](#proofs)
+    * [Proof formats](#proof-formats)
   * [State](#state)
     * [Multi-signature state ownership](#multi-signature-state-ownership)
     * [Proof of state destruction](#proof-of-state-destruction)
   * [Versioning](#versioning)
-    * [Commitment and serialization versioning](#commitment-and-serialization-versioning-with-ver-field)
+    * [Commitment and serialization versioning](#commitment-and-serialization-versioning)
     * [Schema version upgrades](#schema-version-upgrades)
-* [Data structures](#data-structures)
+* [Serialization formats](#serialization-formats)
+  * [Data types](#data-types)
+    * [FlagVarInt](#flagvarint)
+  * [Proof](#proof)
+    * [Seal](#seal)
   * [Schema](#schema)
     * [MetaField](#metafield)
     * [StateType](#statetype)
     * [SealType](#sealtype)
     * [ProofType](#prooftype)
-  * [Proof](#proof)
-    * [Seal](#seal)
-    * [FlagVarInt](#flagvarint)
 
 ## Overview
 
@@ -44,15 +47,20 @@ transaction outputs (**single-use seals**). The state is maintained in a form of
 organized as a **directed acyclic graph** (DAG), stored and validated by peers without a need to trust each other.
 
 Proofs are dually-bounded to the Bitcoin blockchain with seals and commitments. Each proof **seals** some **state** to
-particular transaction output(s) and **commits** to some transaction that spends one of the outputs sealed by 
-**parent** proof(s); this process of state change is named **unsealing**. All the history of the state preceding the 
-state sealed by some proof `A` is called **ancestor proofs** for `A` and forms a part of global DAG named 
-**ancestry DAG** of `A`. Ancestry DAG represents subgraph of the overall DAG always starting at the same root point, 
-named **root proof**, that defines initial **root state**.
+particular transaction output(s) and uses some (potentially other) transaction output to store its **commitment** to 
+the proof itself. The transaction containing output with commitment (**committed output**) must be transaction spending 
+at least some of the outputs sealed by the **parent** proof(s).
+ 
+Proof changes the stage by **unsealing** outputs from the **parent** proofs, i.e. by spending assiciated UTXO's with
+a transaction containing **deterministically-defined** commitment output.
+
+All the history of the state preceding the state sealed by some proof `A` is called **ancestor proofs** for `A`; they 
+form part of global DAG named **ancestry DAG** of `A`. Ancestry DAG represents subgraph of the overall DAG always 
+starting at the same root point, named **root proof**, which defines initial **root state**.
 
 Each time a transaction output sealed by some proof is spent (*unsealed*), the proof becomes **historical proof** and
 a new proof defining new state must be created and committed to the transaction spending outputs of these 
-*parent proofs*. From the point of view of the `X` *historical proof* the proofs that directly unseals its state are
+*parent proofs*. From the point of view of the `X` *historical proof*, the proofs that directly unseals its state are
 called **child proofs**, and the whole DAG subgraph composed of all proofs unsealing at least some of the states of
 the *child proofs* is named **descending graph**. **Root proof** is an origination point for a **state DAG**, which 
 includes all descending proofs of the root proof.
@@ -64,15 +72,15 @@ In order to ensure immutability and achieve consensus, it's necessary to strongl
 transaction outputs in a way that makes impossible to modify the state in any other way without invalidating it. 
 This is achieved by using cryptographic commitments, i.e. by embedding commitment to the hash of the state change 
 (named hereinafter a **proof**) into a Bitcoin transaction output – pretty much like it is done in the 
-[OpenTimeStamps](https://opentimestamps.org/). This mechanism is called **single-use seals** and was 
+[OpenTimestamps](https://opentimestamps.org/). This mechanism is called **single-use seals** and was 
 [originally proposed](https://petertodd.org/2016/commitments-and-single-use-seals) by Peter Todd. This proposal extends
 original concept into a more generic case.
 
 The main distinguishing features of the framework are the following:
 
-* Absence of a shared global state, allowing much higher scalability and better privacy. You can think of the framework
+* Absence of a shared global state, allowing much higher scalability and a better privacy. You can think of the framework
   as of a DAG or a sharding concept done properly, at the Level 2/3 above LNP/BP, without own blockchain, global state,
-  economics distortions cased by token introduction etc.
+  economics distortions caused by token introduction etc.
 * Privacy, censorship resistance and permissionlessness: data embedding points into Bitcoin blockchain are completely 
   obscure, allowing censorship resistance in terms of Bitcoin transaction mining and absence of economic incentive 
   distortion for the miners in Bitcoin network, as well as impossibility of data analysis with on-chain analysis.
@@ -87,7 +95,7 @@ The main distinguishing features of the framework are the following:
 
 The initial idea for the technology comes from Peter's Todd and Giacomo Zucco concepts and ideas of 
 [proof-of-publication](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2014-December/006982.html)
-timestamping ([OpenTimeStamps](https://petertodd.org/2016/opentimestamps-announcement)),
+timestamping ([OpenTimestamps](https://petertodd.org/2016/opentimestamps-announcement)),
 [single-use-seals](https://building-on-bitcoin.com/docs/slides/Peter_Todd_BoB_2018.pdf) 
 and client-side validation, as was proposed in the original concept for
 [Bitcoin-based assets](https://petertodd.org/2017/scalable-single-use-seal-asset-transfer) and 
@@ -110,7 +118,7 @@ commitment.
 
 In order to modify the state bound to some of the seals in UTXOs one needs to (a) spend those UTXOs with a single 
 transaction (i.e. this can only be done by the parties controlling this UTXOs, which provides a security model for
-managing state changes based on Bitcoin model), (b) create a proof defining the new state and bindinb it to a new
+managing state changes based on Bitcoin model), (b) create a proof defining the new state and bind it to a new
 UTXOs, (c) cryptographically commit to the proof within the same transaction that spends previous sealed UTXOs, 
 (d) sign and publish the transaction and wait until it will be mined (mining may be omitted when the technology is
 used on Layer 2).
@@ -189,6 +197,8 @@ supported output types MAY change, state bound to an invalid output types MUST N
 **destroyed**, but rather as **undefined**. In order to create a proper proof of state destruction a user MUST follow 
 the procedure described in the [Proof of state destruction](#proof-of-state-destruction) section.
 
+##### Public key tweaking procedure
+
 The tweaking procedure has been previously described in many publications, such as 
 [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
 However, since the tweaking is already widely used practice 
@@ -232,69 +242,68 @@ A transaction committed to a proof using ORB type is considered valid if:
    (i.e. double SHA256 of serialized proof data, like in P2C commitments), prefixed with 'openseal' tag: 
    `OP_RETURN <SHA256('openseal' || SHA256(SHA256(serialized_proof)))>`
 
-### Schemata
-
-The schema in openseal defines the exact structure of a seal-bound state, including:
-* relation between the seals pointing to transaction outputs and parts of the state
-* structure for the state data and metadata 
-* serialization and deserealization rules for state data and metadata (see [Proof data structure](#proof) section)
-* rules to validate the state and state changes on top of the validation runes used by the OpenSeals
-
-The schema can be defined in formal or an informal name. One of OpenSeals schema samples is an 
-[RGB protocol](04-RGB.md), defining RGB schema for digital asset (digitalized securities, collectibles etc) issuing 
-and transfer.
-
-Schemata are identified by a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or 
-SHA256-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
-OpenSeals-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
-in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
-
 
 ### Proofs
 
-Proof consists of data that are cryptographically committed, i.e. must be preserved as immutable; and additional data,
+Proof consists of data that are cryptographically committed, i.e. must be preserved as immutable – and extra data,
 which always may be deterministically re-computed basing on the data from the Bitcoin blockchain transactions and other
-proofs. Thus, they represent the prunable part of the proof and may be discarded. The reason why it may be reasonable
-to keep and transfer them is the performance: some data will require significant verification orverload in order to be
-recomputed, and it will be much easier to check their correctness having the data itself than to re-compute them from
-the scratch.
+proofs. Such extra data represent a prunable part of the proof, which may be discarded. 
 
-#### Pкoof formats
+* Immutable data:
+  - `header`: data which differ between different proof formats (see below)
+  - `body`: data which have the same structure for all proof formats:
+    * `seals`: UTXOs which are assigned some state by this proof
+    * `state`: actual state data sealed to the UTXOs
+    * `metadata`: a list of fields with special information, which has to be maintained immutable, but not sealed
+  - `pubkey`: original (non-tweaked) public key; the field is present only in [P2C-commited proofs](#pay-to-contract).
+     Pubkey is not a part of the proof hash/id, however proofs are cryptographically committing to it within the actual
+     P2C commitment (see [Public key tweaking procedure](#public-key-tweaking-procedure))
+* Prunable data:
+  - `txid`: a transaction id containing output committed to this proof
+  - `parents`: *parent* transaction ids containing outputs unsealed by the proof
 
-There are four main formats of the proofs: 
-* **Root proof**, which define the source for the state, i.e. it represents DAG root node. Root proof MUST start with 
-  a root flag (the highest bit in the first byte = 1) followed by a second byte with `0x00` value (see 
-  [prof serialization format](#proof-serialization-formats) for the details) and MUST contain special additional 
-  fields absent in the rest of proofs: 
-  * `ver`, specifying the OpenSeals framework version used for proof serialization, interpretation and verification. 
-    This field MUST BE masked with the highest bit set to `1` .
-  * `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction containing
-    an output committed to the root proof. This mechanism is necessary to prevent possible double-publication of the root
-    proof and ambiguity in the state.
-  * `schema`: a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or SHA256-hash of 
-    serialized formal schema definition data
-  * `network`: Bitcoin network in use (mainnet, testnet)
-* **Version upgrade proofs**, that signal OpenSeals version upgrade for all *descendant proofs* according to the
+The reason why it may be reasonable to keep and transfer extra data is a performance: reconstruction of these data will 
+require significant computing/multiple  DB queries, and it will be much easier to check their correctness having the 
+data themselves than to re-compute them from scratch.
+
+#### Proof formats
+
+There are four main types of the proofs: 
+* **Root proof**, which define the source for the state history, i.e. they represent DAG root node. Root proof contain 
+  special fields in their `header`: 
+  * `ver`, specifying the OpenSeals framework version used for proof serialization, interpretation and verification.
+  * `schema`: a double SHA256-hash of the schema name (for informally-defined schemas) or double SHA256-hash of 
+    serialized formal schema definition data (see [Schemata section](#schemata) for more details)
+  * `network`: Bitcoin network in use. Currently the system supports the following networks:
+    - Bitcoin mainnet: 0x01
+    - Bitcoin testnet: 0x02
+    - Bitcoin regtest: 0x03
+    - Bitcoin signet: 0x04
+    - Liquid v1: 0x10
+  * `root`, pointing to transaction output which MUST be spent and become one of the inputs for the transaction 
+    containing an output committed to the root proof. This mechanism is necessary to prevent possible double-publication
+    of the root proof and ambiguity in the state.
+* **Version upgrade proofs**, that signal OpenSeals version upgrade according to the
   [version upgrade procedure](#versioning). These proofs has the following additional fields:
   * `ver`, specifying a new OpenSeals framework version used for proof serialization, interpretation and verification. 
-    This field MUST BE masked with the highest bit set to `1`.
-  * `schema`: a cryptographic SHA256-hash of the updated schema name (for informally-defined schemas) or SHA256-hash of 
-    serialized formal schema definition data. If the proof does not assign a new schema, this field must be set to
-    256 zero bits.
-* **Normal proofs**
-* **[Proof of state destruction](#proof-of-state-destruction)** is a special form of the proof that is a normal proof 
-  with zero seals.
-
+  * `schema`: a double SHA256-hash of the updated schema name (for informally-defined schemas) or double 
+    SHA256-hash of serialized formal schema definition data. If the proof does not assign a new schema, this field must 
+    be set to 256 zero bits.
+* **Ordinary proofs**, which may have an optional version field (see [Schema version upgrade](#schema-version-upgrades) 
+  below).
+* **[Proof of state destruction](#proof-of-state-destruction)** is a special form of an ordinary proof with zero 
+  number of seals and empty sealed state.
 
 ### State
 
 Publication of the transaction containing committed output to a root proof creates a root for the decentralized state,
-changes to which will be maintained in a form of a DAG consisting of other proofs spending the sealed transaction 
+changes to which will be maintained in a form of a DAG, consisting of other proofs spending sealed transaction 
 outputs from the root proof.
 
-The distributed state initialized by the root proof can be uniquely identified with the root proof id, i.e. its hash
+A distributed state is initialized by a root proof can be uniquely identified with the root proof id, i.e. its hash
 used for the commitment procedure. This hash includes the hash of the transaction output which is spent during the
-proof publication, so there is no way to publish the same proof twice and have the same id for some distributed state.
+proof publication (`root` field), so there is no way to publish the same proof twice and have the same id for some 
+distributed state.
 
 #### Multi-signature state ownership
 
@@ -309,23 +318,43 @@ unlocking script will satisfy the signing conditions of the locking script.
 
 Token owners have the ability to provably and deterministically destroy parts of the state. To do this, proof owner 
 having control on some parts of the state has to create a special form of the proof (**proof of state destruction**),
-which is a normal proof with zero seals, and commit it with either P2C or ORB commitment. The proof MAY then be 
-published in order to prove that the part of the state was really destroyed.
+which is an ordinary proof with zero seals and empty state data, and commit it with either P2C or ORB commitment. 
+The proof MAY then be published in order to prove that the part of the state was really destroyed.
+
+
+### Schemata
+
+The schema in OpenSeals defines the exact structure of a seal-bound state, including:
+* relation between seals pointing to transaction outputs and parts of the state;
+* structure for state data and metadata fields;
+* serialization and deserialization rules for state data and metadata (see [Proof data structure](#proof) section)
+* rules to validate the state and state changes, which are additional to the validation rules used by OpenSeals 
+  framework
+
+The schema can be defined in formal or an informal way. One of OpenSeals schema samples is an 
+[RGB protocol](04-RGB.md), defining RGB schema for digital assets (digitalized securities, collectibles etc) issuing 
+and transfer.
+
+Schemata are identified by a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or 
+double SHA256-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
+OpenSeals-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
+in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
 
 
 ### Versioning
 
-OpenSeals framework, in order to allow future enhancements to the used commitment protocols and proof validation 
-mechanics supports **versioning**.
+Iin order to allow future enhancements to the used commitment protocols and proof validation OpenSeals framework
+supports **versioning**.
 
 Versioning defines:
 * which cryptographic commitments are allowed and how the proofs have to be validated regarding the commitment rules;
-* which format is defined for parsing serialized proofs and schema files;
+* proof and schema binary serialization format (called **consensus serialization**) for network transfer and on-disk
+  storage;
 * which schema version is used by the proofs.
 
-#### Commitment and serialization versioning with `ver` field
+#### Commitment and serialization versioning
 
-The first two parts are defined using generic versioning field, present in *root* and *version upgrade proofs*. This
+The first two parts are defined using generic versioning field, present in *root* and *version upgrade proofs*.
 
 The version used by other proofs is defined by the [root proof](#proof-serialization-formats), and *state DAG* MUST by 
 default follow the version provided by the *root proof*. However, it is possible to update the version using special 
@@ -349,157 +378,44 @@ example, version upgrades in the [RGB protocol](./04-RGB.md)).
 The third form of versioning allows modification of the proof `meta`, `state` and `seals` format with migration to a 
 newer schema version. This upgrade is performed also using *version upgrade proofs* with non-zero *schema* field
 (see [proof serialization formats](#proof-serialization-formats) for more information). Unlikely commitment serialization
-a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants.
+a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants. Moreover, migration
+for the new proof format can be done without unsealing such *version upgrade proof*, but just by having ordinary proofs
+*published after the version upgrade proof* (in terms of block height) signalling a new version in its first field.
 
 
-## Data structures
+## Serialization formats
 
 The following chapters explain the exact data structure and serialization format for different entities which constitute
 parts of OpenSeals framework.
 
-### Schema
+### Data types
 
-Schema file uniquely defines which kinds of proofs can be used for the given schema; how they can be constructed into
-a DAG via different seals and which kinds of state and metadata they have to provide. First, schema defines all possible
-data types for metadata fields, state and seals; than it lists definitions for proof types, which 
+Proof state and metadata fields, as well as many parts of schema, utilize standard serialization primitive types. This
+primitives generally follows bitcoin serialization rules, and are named hereinafter in the following way:
+* 8- to 64-bit signed and unsigned integer (`u8, u16, u32, u64, i8, i16, i32, i64`)
+* Variable-length unsigned integer (`vi`)
+* `sha256`, double SHA256 (`sha256d`), `ripmd160`, RIPMD160 after SHA256 (`hash160`) hash types
+* `pubkey`, in compressed format
 
-Field         | Serialization format    | Description
-------------- | ----------------------- | -----------------------
-`name`        | `String`                | Schema name (human-readable string)
-`schema_ver`  | `VarInt`, `u8`, `u8`    | Schema version in [semantic versioning format](https://semver.org/)
-`prev_schema` | `SHA256`                | Previous schema version reference or 256 zero-bits for the first schema definition
-`meta_fields` | `VarInt[`[`MetaField`](#metafield)`]` | Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
-`state_types` | `VarInt[`[`StateType`](#statetype)`]` | Definition of all possible state types that will be managed by the proofs
-`seal_types`  | `VarInt[`[`SealType`](#sealtype)`]`   | Definition of different seal types that can be used by the proofs 
-`proof_types` | `VarInt[`[`ProofType`](#prooftype)`]` | List of possible proof formats, bridging meta fields, state types and seal types together with their validation rules
-
-
-#### MetaField
-
-Metadata are composed of metafield types, which are the same as used by the normal bitcoin serialization function, like:
-* `String`: first byte encodes string length, the rest — the actual string content. Zero-length strings equals to NULL
+Also, proofs use standard composed types from bitcoin consensus serialization:
+* `str`: first byte encodes string length, the rest — the actual string content. Zero-length strings equals to NULL
   if the optional value is implied.
-* 8- to 64-bit integer
-* Variable-length integer
-* SHA256 and RIPMD160 hashes
-* Public key (in compressed format)
+* Variable-length byte string, consisting of `vi` followed by byte sequence of the corresponding length
+* `OutPoint`, consisting of a transaction id (`sha256d`) followed by `vout` number (in form of `vi`)
 
-Each metafield type is encoded as a tuple of `(title: str, type: u8)`, where title string is bitcoin-encoded string.
-Values for each types are given in the following table:
-
-Type       | TypeId
----------- | -------
-String     | 0x00
-u8         | 0x01
-u16        | 0x02
-u32        | 0x03
-u64        | 0x04
-i8         | 0x05
-i16        | 0x06
-i32        | 0x07
-i64        | 0x08
-VarInt     | 0x09
-FlagVarInt | 0x0a
-SHA256     | 0x10
-RIPMD160   | 0x11
-PubKey     | 0x12
-VarInt[u8] | 0x20
-
-
-#### StateType
-
-State sealed and updated by the proofs can be of the following kinds:
-
-* **State without a value**: this type of state may help to track proofs of some binary actions taken by owners, like 
-  the proofs for the fact of asset reissuance.
-* **Unspent balances**, as fractions of total value, useful as a unit of accounting. The state is stored as u64 values,
-  like bitcoin satoshis, representing the minimum indivisible part of some asset. The total asset supply in this case
-  MUST BE defined as one of the meta fields.
-* **Array of immutable data**: TBD
-* **Mutable complex single value**: TBD
-* **Distributed value components**: TBD
-
-Each state type is encoded as a tuple of `(title: str, type: u8)`, where title string is bitcoin-encoded string.
-Values for each types are given in the following table:
-
-State Type | TypeId
----------- | -------
-No value   | 0x00
-Balances   | 0x01
-
-
-#### SealType
-
-Since proofs can manage multiple kinds of the state at the same time, it's important to define which seals will be able
-to manage which types. This is done through `SealType` data structure, consisting of tuples 
-`(title: str, state_type_idx: u8`), where `state_type_idx` is the reference to the `StateType` withing the same schema 
-under the corresponding index within `state_types` list.
-
-
-#### ProofType
-
-The first proof listed in the `proot_fypes` array MUST BE the type used for root proofs. The other proof types are 
-defined by the type of seal they unseal; there can be only a single proof type unsealing each type of seal.
-
-Field         | Type                    | Description
-------------- | ----------------------- | ---------------------------------------
-`title`       | `str`                   | Human-readable name of the proof type
-`unseals`     | `VarInt`                | Index of `SealType` which has to be unsealed by the proof; must be abset for the first proof type in the list (since it is a root proof which does not unseal any data)
-`meta_fields` | `VarInt[`[`FlagVarInt`](#flagvarint)`]` | Indexes of `MetaField` that can be used by this proof type (with optionality flag)
-`seal_types`  | `VarInt[(VarInt, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
-
-
-
-### Proof
-
-Field        | Serialized       | Committed | Optionality  | Description
------------- | ---------------- | --------- | ------------ | -----------
-`ver`        | `byte`           | yes       | optional     | Version of the OpenSeals protocol, with the highest bit always set to `1`
-`flag`       | `byte`           | yes       | optional*    | Special flag specifying **version upgrade proofs** (see [Proof types](#proof-serialization-formats) below)
-`schema`     | `SHA256`         | yes       | root & version upgrades | Schema ID applied to parse the `data` and `meta` fields.
-`root`       | `OutPoint`       | yes       | only in root | TxOut which is to be spent as a proof of publication for the root entity.
-`network`    | `byte`           | yes       | only in root | Network to which this root proof is deployed: Mainnet, testnet etc
-`pubkey`     | `PubKey`         | yes**     | for P2C only | Original public key before the key tweaking procedure applied
-`seals`      | [`FlagVarInt`](#flagvarint)`[Seal]` | yes | obligatory*** | References to sealed txouts or vouts. Must always start with a highest bit = `0` in order to distinguish normal proofs from root proofs (which have the highest byte in the first bet = `1`)
-`state`      | `VarInt[bytes]`  | yes       | obligatory   | Sealed state: some data structures linked to the sealed transaction outputs
-`metadata`   | `VarInt[bytes]`  | yes       | obligatory   | Metadata representing additional information other then the sealed data
-`parents`    | `VarInt[SHA256]` | no        | prunable     | List of parent proofs some of which seals are unsealed by the current proof (the field MAY BE added for performance reasons)
-`txid`       | `TxId`           | no        | prunable     | Transaction ID that contains an output with the commitment to the proof (the field MAY BE added for performance reasons)
-
-* - MUST BE present if the highest bit of the `ver` is set to `1` (see [Proof types](#proof-serialization-formats) below)
-** — `pubkey` is committed not into a hash of the proof, but as a part of tagged [P2C commitment](#pay-to-contract).
-*** — has zero member for [proofs of state destruction](#proof-of-state-destruction)
-
-This serialization format is designed in a way that allows to maintain the smallest size for *normal proofs*, to reduce
-necessary off-chain data storage as much as possible. Our estimation for a size of a smallest normal P2C-committed proof 
-is around 38 bytes.
-
-#### Proof serialization formats
-
-Proofs by their serialization structure may be one of the following types:
-* **Root proofs** having the highest bit of the first byte of the proof is set to `1`, the rest of bits representing
-  OpenSeals framework version used to parse the proof, which are followed by `0x00` byte. In other words, root proofs
-  are defined by `1*** **** 0000 0000`binary signature of the first two bytes (where `*` denotes any possible value for 
-  the corresponding bit).
-* **Version upgrade proofs** having the highest bit of the first byte of the proof is set to `1`, the rest of bits 
-  representing OpenSeals framework version used to parse all descendant proofs. The first byte MUST BE followed by
-  which are followed by `0xFF` byte. In other words, root proofs are defined by `1*** **** 1111 1111`binary signature of 
-  the first two bytes (where `*` denotes any possible value for the corresponding bit). Version upgrade proofs are used
-  to signify [upgrades of the OpenSeals version](#versioning). If the proof does not provides a new schema, the schema
-  field MUST BE set to 256 zero bits.
-* **Normal proofs** and **proofs of state destruction** having binary signature in form of `0*** ****`.
-
-#### Seal
-
-Field        | Serialized   | Length (bytes)      
------------- | ------------ | ------------------
-`typeflag`   | bit flag     | 1 bit
-`vout`       | [`FlagVarInt`](#flagvarint) | 1..5
-`txid`       | `TxId`       | 0 or 36
+Additionally to bitcoin-defined types, OpenSeals defines new primitive types, created with the aim to reduce the size
+of off-chain client-side stored data. These types are:
+* Sort variable-length unsigned integer `svi`, which follows the same rules as bitcoin VarInt, but instead of following
+  1-2-4-8 byte steps uses 1-2-3-4 byte steps
+* Flag-prefixed variable-length unsigned integer `fvi`, which extends VarInt with special single-bit flag, preserving a
+  byte where the flag is required and followed by VarInt-length data.
+* Short from of transaction output, which starts with `vout`, stored in the form of  `fvi`, which may be optionally 
+  followed by full transaction id (if `vout` has a flag set to `1`). This format allows to store short forms of output
+  which reference the same transaction used for storing the commitment to the proof.
 
 #### FlagVarInt
 
-FlagVarInt uses Bitcoin VarInt-like serialization format, but it reserves the highest bit from the first byte for a flag
+`fvi` uses Bitcoin VarInt-like serialization format, but it reserves the highest bit from the first byte for a flag
 and supports values only up to 32-bit integers. In general, it helps to save a byte on signaling some information inside
 the proofs and seals and provides generally smaller size footprint for the real-world use cases addressing transaction
 outputs: for transactions with 256-2^16 outputs `FlagVarInt` will result in 3-byte encoding, while `VarInt` will give a 
@@ -515,7 +431,7 @@ outputs: for transactions with 256-2^16 outputs `FlagVarInt` will result in 3-by
 
 (* is a wildcard for bytes that can have any value, i.e. used to encode the actual integer).
 
-Sample deserealization code:
+Sample deserialization code:
 
 ```rust
 fn parse_flagvarint() -> u32 {
@@ -537,4 +453,99 @@ fn parse_flagvarint() -> u32 {
     }
 }
 ```
+
+
+### Proof
+
+![Proof consensus serialization format](./assets/proof_consensus_serialization.png)
+
+
+### Schema
+
+Schema file uniquely defines which kinds of proofs can be used for the given schema; how they can be constructed into
+a DAG via different seals and which kinds of state and metadata they have to provide. First, schema defines all possible
+data types for metadata fields, state and seals; than it lists definitions for proof types (not to be mixed with
+[Proof formats](#proof-formats)), which are composed of different combinations of seals and metadata.
+
+Field         | Serialization format    | Description
+------------- | ----------------------- | -----------------------
+`name`        | `str`                   | Schema name (human-readable string)
+`schema_ver`  | `vi`, `u8`, `u8`        | Schema version in [semantic versioning format](https://semver.org/)
+`prev_schema` | `sha256d`               | Previous schema version reference or 256 zero-bits for the first schema definition
+`meta_fields` | `vi[`[`MetaField`](#metafield)`]`| Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
+`seal_types`  | `vi[`[`SealType`](#sealtype)`]`  | Definition of different seal types and corresponding state types that can be used by the proofs 
+`proof_types` | `vi[`[`ProofType`](#prooftype)`]`| List of possible proof formats, bridging meta fields and seal types together with their validation rules
+
+
+#### MetaField
+
+Metadata are composed of metafield types. Each metafield type is encoded as a tuple of `(title: str, type: u8)`, 
+where title string is bitcoin-encoded string. Values for each types are given in the following table:
+
+Type Id    | Value identifying type | Description | Size | Serialization
+---------- | ---- | ----------------------------- | ---- | -----
+u8         | 0x01 | Unsigned 8-bit integer        | 1    | byte 
+u16        | 0x02 | Unsigned 16-bit integer       | 2    | two bytes (word)
+u32        | 0x03 | Unsigned 32-bit integer       | 4    | four bytes (double word)
+u64        | 0x04 | Unsigned 64-bit integer       | 8    | eight bytes (quadruple word)
+i8         | 0x05 | Signed 8-bit integer          | 1    | byte 
+i16        | 0x06 | Signed 16-bit integer         | 2    | two bytes (word)
+i32        | 0x07 | Signed 32-bit integer         | 4    | four bytes (double word)
+i64        | 0x08 | Signed 64-bit integer         | 8    | eight bytes (quadruple word)
+vi         | 0x09 | Variable-length unsigned integer | 1-9 | 
+svi        | 0x0a | Short variable-length unsigned integer | 1-5 | 
+fvi        | 0x0b | Flagged variable-length unsigned integer | 1-5 | 
+str        | 0x0c | String                        | vi+n | vi(length)+bytes
+bytes      | 0x0d | Byte string                   | vi+n | vi(length)+bytes
+pubkey     | 0x10 | Public key in compact format  | 33   | 
+sha256     | 0x11 | Single SHA256 hash            | 32   |
+sha256d    | 0x12 | Double SHA256 hash            | 32   |
+ripmd160   | 0x13 | Single RIPMD160 hash          | 20   |
+hash160    | 0x14 | SHA256 hash followed by RIPMD160 | 20 |
+outpoint   | 0x20 | Transaction output            | 33-41 | `sha256d, vi`
+soutpoint  | 0x21 | Short transaction output      | 1-37 | `svi, [sha256d]`
+
+
+#### StateType
+
+State sealed and updated by the proofs can be of the following kinds:
+
+* **State without a value**: this type of state may help to track proofs of some binary actions taken by owners, like 
+  the proofs for the fact of asset reissuance.
+* **Unspent balances**, as fractions of total value, useful as a unit of accounting. The state is stored as u64 values,
+  like bitcoin satoshis, representing the minimum indivisible part of some asset. The total asset supply in this case
+  MUST BE defined as one of the meta fields.
+* **Array of immutable data** or **datagraph**: Data are appended to some immutable graph with each new proof
+* **Mutable complex single value**: TBD
+* **Distributed value components**: TBD
+
+Each state type is encoded as a tuple of `(title: str, type: u8)`, where title string is bitcoin-encoded string.
+Values for each types are given in the following table:
+
+State Type | TypeId  | Data member name
+---------- | ------- | -----------------
+No value   | 0x00    | -
+Balances   | 0x01    | `amount`
+Datagraph  | 0x02    | `data`
+
+
+#### SealType
+
+Since proofs can manage multiple kinds of the state at the same time, it's important to define which seals will be able
+to manage which types. This is done through `SealType` data structure, consisting of tuples 
+`(title: str, state_type_idx: u8`), where `state_type_idx` is the reference to the `StateType` withing the same schema 
+under the corresponding index within `state_types` list.
+
+
+#### ProofType
+
+The first proof listed in the `proot_fypes` array MUST BE the type used for root proofs. The other proof types are 
+defined by the type of seal they unseal; there can be only a single proof type unsealing each type of seal.
+
+Field         | Type                    | Description
+------------- | ----------------------- | ---------------------------------------
+`title`       | `str`                   | Human-readable name of the proof type
+`unseals`     | `vi`                | Index of `SealType` which has to be unsealed by the proof; must be abset for the first proof type in the list (since it is a root proof which does not unseal any data)
+`meta_fields` | `vi[`[`fvi`](#flagvarint)`]` | Indexes of `MetaField` that can be used by this proof type (with optionality flag)
+`seal_types`  | `vi[(vi, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
 
