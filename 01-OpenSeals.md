@@ -545,3 +545,101 @@ Field         | Type                    | Description
 `meta_fields` | `vi[`[`fvi`](#flagvarint)`]` | Indexes of `MetaField` that can be used by this proof type (with optionality flag)
 `seal_types`  | `vi[(vi, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
 
+## Test vectors
+
+### Root proof
+
+```yaml
+ver: 1
+format: root
+schema: sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
+network: bitcoin:testnet
+root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
+pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
+metadata:
+  title: Private Company Ltd Shares
+  ticker: PLS
+  dust_limit: 1
+seals:
+  - type: assets
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:0
+    amount: 1000000
+  - type: inflation
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:1
+  - type: upgrade
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:3
+  - type: pruning
+    outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:2
+```
+
+```
+00000000  81 8a c9 6e e4 b3 4d 05  f4 d4 8e 7b ee 1c 83 5c  |...n..M....{...\|
+00000010  ec 97 41 d2 2a 62 e0 1b  ce 12 c5 73 77 9a 9d 03  |..A.*b.....sw...|
+00000020  7a 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |z.W....b..F..$@>|
+00000030  ed 6c 3f 5b a5 8d a0 12  3b 39 2a b0 b1 fa 23 30  |.l?[....;9*...#0|
+00000040  6f 27 04 04 00 57 00 bd  cc fc 62 09 a5 46 0d c1  |o'...W....b..F..|
+00000050  24 40 3e ed 6c 3f 5b a5  8d a0 12 3b 39 2a b0 b1  |$@>.l?[....;9*..|
+00000060  fa 23 30 6f 27 01 57 00  bd cc fc 62 09 a5 46 0d  |.#0o'.W....b..F.|
+00000070  c1 24 40 3e ed 6c 3f 5b  a5 8d a0 12 3b 39 2a b0  |.$@>.l?[....;9*.|
+00000080  b1 fa 23 30 6f 27 03 57  00 bd cc fc 62 09 a5 46  |..#0o'.W....b..F|
+00000090  0d c1 24 40 3e ed 6c 3f  5b a5 8d a0 12 3b 39 2a  |..$@>.l?[....;9*|
+000000a0  b0 b1 fa 23 30 6f 27 02  57 00 bd cc fc 62 09 a5  |...#0o'.W....b..|
+000000b0  46 0d c1 24 40 3e ed 6c  3f 5b a5 8d a0 12 3b 39  |F..$@>.l?[....;9|
+000000c0  2a b0 b1 fa 23 30 6f 27  05 fe 40 42 0f 00 20 1a  |*...#0o'..@B.. .|
+000000d0  50 72 69 76 61 74 65 20  43 6f 6d 70 61 6e 79 20  |Private Company |
+000000e0  4c 74 64 20 53 68 61 72  65 73 03 50 4c 53 01 02  |Ltd Shares.PLS..|
+000000f0  62 b0 6c b2 05 c3 de 54  71 7e 0b c0 ea b2 08 8b  |b.l....Tq~......|
+00000100  0e db 9b 63 fa b4 99 f6  ca c8 75 48 ca 20 5b e1  |...c......uH. [.|
+```
+
+```
+0000000 81                                                  Flag-prefixed version
+
+0000000    8a c9 6e e4 b3 4d 05 f4 d4 8e 7b ee 1c 83 5c     Schema ID
+0000010 ec 97 41 d2 2a 62 e0 1b ce 12 c5 73 77 9a 9d 03     sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
+0000020 7a 
+
+0000020    02                                               Network identifier (bitcoin testnet)
+
+0000020       57 00 bd cc fc 62 09 a5 46 0d c1 24 40 3e     Contract-deployment txout
+0000030 ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1 fa 23 30     5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
+0000040 6f 27 04 
+
+0000040          04                                         Number of seals
+
+0000040             00 57 00 bd cc fc 62 09 a5 46 0d c1     Seal #1 short outpoint
+0000050 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1
+0000060 fa 23 30 6f 27 
+
+0000060                01 57 00 bd cc fc 62 09 a5 46 0d     Seal #2 short outpoint
+0000070 c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0
+0000080 b1 fa 23 30 6f 27 
+
+0000080                   03 57 00 bd cc fc 62 09 a5 46     Seal #3 short outpoint
+0000090 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a
+00000a0 b0 b1 fa 23 30 6f 27 
+
+00000b0                      02 57 00 bd cc fc 62 09 a5     Seal #4 short outpoint
+00000b0 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39
+00000c0 2a b0 b1 fa 23 30 6f 27
+
+00000c0                         05                          Length of sealed state data
+
+00000c0                            fe 40 42 0f 00           Sealed state
+
+00000c0                                           20        Length of metadata
+
+00000c0                                              1a     String "Private Company Ltd Shares"
+00000d0 50 72 69 76 61 74 65 20 43 6f 6d 70 61 6e 79 20
+00000e0 4c 74 64 20 53 68 61 72 65 73 
+
+00000e0                               03 50 4c 53           String "PLS"
+
+00000e0                                           01        Dust limit
+
+00000e0                                              02     Original public key
+00000f0 62 b0 6c b2 05 c3 de 54 71 7e 0b c0 ea b2 08 8b
+0000100 0e db 9b 63 fa b4 99 f6 ca c8 75 48 ca 20 5b e1
+```
+
+The hash of the proof must be `pf1pw5jqd2mxmqcts3gam469c9q0k02c9h0aphgrq3m0svn6wq3hh8usyyrzfj`
