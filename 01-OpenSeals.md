@@ -30,6 +30,9 @@
     * [StateType](#statetype)
     * [SealType](#sealtype)
     * [ProofType](#prooftype)
+* [Test vectors](#test-vectors)
+    * [Root proof test vector](#root-proof-test-vector)
+    * [Schema test vector](#schema-test-vector)
 
 ## Overview
 
@@ -493,14 +496,14 @@ vi         | 0x09 | Variable-length unsigned integer | 1-9 |
 fvi        | 0x0a | Flagged variable-length unsigned integer | 1-5 | 
 str        | 0x0b | String                        | vi+n | vi(length)+bytes
 bytes      | 0x0c | Byte string                   | vi+n | vi(length)+bytes
-pubkey     | 0x10 | Public key in compact format  | 33   | 
-sha256     | 0x11 | Single SHA256 hash            | 32   |
-sha256d    | 0x12 | Double SHA256 hash            | 32   |
-ripmd160   | 0x13 | Single RIPMD160 hash          | 20   |
-hash160    | 0x14 | SHA256 hash followed by RIPMD160 | 20 |
+sha256     | 0x10 | Single SHA256 hash            | 32   |
+sha256d    | 0x11 | Double SHA256 hash            | 32   |
+ripmd160   | 0x12 | Single RIPMD160 hash          | 20   |
+hash160    | 0x13 | SHA256 hash followed by RIPMD160 | 20 |
 outpoint   | 0x20 | Transaction output            | 33-41 | `sha256d, vi`
 soutpoint  | 0x21 | Short transaction output      | 1-37 | `vi, [sha256d]`
-
+pubkey     | 0x30 | Public key in compact format  | 33   | 
+ecdsa      | 0x31 | ECDSA signature               | 72   | `DER`
 
 #### StateType
 
@@ -547,7 +550,7 @@ Field         | Type                    | Description
 
 ## Test vectors
 
-### Root proof
+### Root proof test vector
 
 ```yaml
 ver: 1
@@ -573,9 +576,9 @@ seals:
 ```
 
 ```
-00000000  81 8a c9 6e e4 b3 4d 05  f4 d4 8e 7b ee 1c 83 5c  |...n..M....{...\|
-00000010  ec 97 41 d2 2a 62 e0 1b  ce 12 c5 73 77 9a 9d 03  |..A.*b.....sw...|
-00000020  7a 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |z.W....b..F..$@>|
+00000000  81 2d 2b 27 81 96 3b a6  41 62 1e c1 eb 72 fb 7a  |.-+'..;.Ab...r.z|
+00000010  6e 24 4f 67 24 3b ec 95  3a f8 f7 68 ff 90 09 d1  |n$Og$;..:..h....|
+00000020  fe 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |..W....b..F..$@>|
 00000030  ed 6c 3f 5b a5 8d a0 12  3b 39 2a b0 b1 fa 23 30  |.l?[....;9*...#0|
 00000040  6f 27 04 04 00 57 00 bd  cc fc 62 09 a5 46 0d c1  |o'...W....b..F..|
 00000050  24 40 3e ed 6c 3f 5b a5  8d a0 12 3b 39 2a b0 b1  |$@>.l?[....;9*..|
@@ -590,14 +593,14 @@ seals:
 000000e0  4c 74 64 20 53 68 61 72  65 73 03 50 4c 53 01 02  |Ltd Shares.PLS..|
 000000f0  62 b0 6c b2 05 c3 de 54  71 7e 0b c0 ea b2 08 8b  |b.l....Tq~......|
 00000100  0e db 9b 63 fa b4 99 f6  ca c8 75 48 ca 20 5b e1  |...c......uH. [.|
-```
+0```
 
 ```
 0000000 81                                                  Flag-prefixed version
 
-0000000    8a c9 6e e4 b3 4d 05 f4 d4 8e 7b ee 1c 83 5c     Schema ID
-0000010 ec 97 41 d2 2a 62 e0 1b ce 12 c5 73 77 9a 9d 03     sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
-0000020 7a 
+0000000    2d 2b 27 81 96 3b a6 41 62 1e c1 eb 72 fb 7a     Schema ID
+0000010 6e 24 4f 67 24 3b ec 95 3a f8 f7 68 ff 90 09 d1     sm1p954j0qvk8wnyzcs7c84h97m6dcjy7eey80kf2whc7a50lyqf68lq0claj8
+0000020 fe 
 
 0000020    02                                               Network identifier (bitcoin testnet)
 
@@ -642,4 +645,100 @@ seals:
 0000100 0e db 9b 63 fa b4 99 f6 ca c8 75 48 ca 20 5b e1
 ```
 
-The hash of the proof must be `pf1pw5jqd2mxmqcts3gam469c9q0k02c9h0aphgrq3m0svn6wq3hh8usyyrzfj`
+The hash of the proof must be `pf1p5lr9ffjr9fnvtu8cxkf9rruv050wl8c30aykr4frmlkh88z4ckdseqksq3`
+
+### Schema test vector
+
+```yaml
+name: RGB
+schema_ver: 1.0.0
+prev_schema: 0
+field_types:
+  ver: u8
+  schema: sha256
+  ticker: str
+  title: str
+  description: str
+  url: str
+  max_supply: vi
+  dust_limit: vi
+  signature: signature
+seal_types:
+  assets: balance
+  inflation: none
+  upgrade: none
+  pruning: none
+proof_types:
+  - title: Primary issue
+    fields:
+      ticker: optional
+      title: optional
+      description: optional
+      url: optional
+      max_supply: optional
+      dust_limit: single
+      signature: optional
+    seals:
+      assets: many
+      inflation: optional
+      upgrade: single
+      pruning: single
+  - title: Secondary issue
+    unseals:
+      inflation: single
+    fields:
+      url: optional
+      signature: optional
+    seals:
+      assets: many
+      inflation: optional
+      pruning: single
+  - title: Asset version upgrade
+    unseals:
+      upgrade: single
+    fields:
+      ver: single
+      schema: optional
+      signature: optional
+    seals:
+      upgrade: single
+  - title: Asset history pruning
+    unseals:
+      pruning: single
+    fields: [ ]
+    seals:
+      assets: many
+      pruning: single
+  - title: Asset transfer
+    unseals:
+      assets: many
+    fields:
+      ver: optional
+    seals:
+      assets: any
+```
+
+```
+00000000  03 52 47 42 01 00 00 00  00 00 00 00 00 00 00 00  |.RGB............|
+00000010  00 00 00 00 00 00 00 00  00 00 00 00 00 00 00 00  |................|
+00000020  00 00 00 00 00 00 00 09  03 76 65 72 01 06 73 63  |.........ver..sc|
+00000030  68 65 6d 61 10 06 74 69  63 6b 65 72 0b 05 74 69  |hema..ticker..ti|
+00000040  74 6c 65 0b 0b 64 65 73  63 72 69 70 74 69 6f 6e  |tle..description|
+00000050  0b 03 75 72 6c 0b 0a 6d  61 78 5f 73 75 70 70 6c  |..url..max_suppl|
+00000060  79 09 0a 64 75 73 74 5f  6c 69 6d 69 74 09 09 73  |y..dust_limit..s|
+00000070  69 67 6e 61 74 75 72 65  31 04 06 61 73 73 65 74  |ignature1..asset|
+00000080  73 01 09 69 6e 66 6c 61  74 69 6f 6e 00 07 75 70  |s..inflation..up|
+00000090  67 72 61 64 65 00 07 70  72 75 6e 69 6e 67 00 05  |grade..pruning..|
+000000a0  0d 50 72 69 6d 61 72 79  20 69 73 73 75 65 07 02  |.Primary issue..|
+000000b0  00 01 03 00 01 04 00 01  05 00 01 06 00 01 07 01  |................|
+000000c0  01 08 00 01 00 04 00 01  ff 01 00 01 02 01 01 03  |................|
+000000d0  01 01 0f 53 65 63 6f 6e  64 61 72 79 20 69 73 73  |...Secondary iss|
+000000e0  75 65 02 05 00 01 08 00  01 01 01 01 01 03 00 01  |ue..............|
+000000f0  ff 01 00 01 03 01 01 15  41 73 73 65 74 20 76 65  |........Asset ve|
+00000100  72 73 69 6f 6e 20 75 70  67 72 61 64 65 03 00 01  |rsion upgrade...|
+00000110  01 01 00 01 08 00 01 01  02 01 01 01 02 01 01 15  |................|
+00000120  41 73 73 65 74 20 68 69  73 74 6f 72 79 20 70 72  |Asset history pr|
+00000130  75 6e 69 6e 67 00 01 03  01 01 02 00 01 ff 03 01  |uning...........|
+00000140  01 0e 41 73 73 65 74 20  74 72 61 6e 73 66 65 72  |..Asset transfer|
+00000150  01 00 00 01 01 00 01 ff  01 00 00 ff              |............|
+```
