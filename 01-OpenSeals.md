@@ -405,9 +405,7 @@ Also, proofs use standard composed types from bitcoin consensus serialization:
 
 Additionally to bitcoin-defined types, OpenSeals defines new primitive types, created with the aim to reduce the size
 of off-chain client-side stored data. These types are:
-* Sort variable-length unsigned integer `svi`, which follows the same rules as bitcoin VarInt, but instead of following
-  1-2-4-8 byte steps uses 1-2-3-4 byte steps
-* Flag-prefixed variable-length unsigned integer `fvi`, which extends VarInt with special single-bit flag, preserving a
+* Flag-prefixed variable-length unsigned integer, `fvi`, which extends VarInt with special single-bit flag, preserving a
   byte where the flag is required and followed by VarInt-length data.
 * Short from of transaction output, which starts with `vout`, stored in the form of  `fvi`, which may be optionally 
   followed by full transaction id (if `vout` has a flag set to `1`). This format allows to store short forms of output
@@ -417,16 +415,14 @@ of off-chain client-side stored data. These types are:
 
 `fvi` uses Bitcoin VarInt-like serialization format, but it reserves the highest bit from the first byte for a flag
 and supports values only up to 32-bit integers. In general, it helps to save a byte on signaling some information inside
-the proofs and seals and provides generally smaller size footprint for the real-world use cases addressing transaction
-outputs: for transactions with 256-2^16 outputs `FlagVarInt` will result in 3-byte encoding, while `VarInt` will give a 
-5-byte encoding.
+the proofs and seals.
 
 ```
-<124 -> _ * * *   * * * * : 
-=124 -> _ 1 1 1   1 1 0 0 : * * * *   * * * *
-=125 -> _ 1 1 1   1 1 0 1 : * * * *   * * * * : * * * *   * * * *
-=126 -> _ 1 1 1   1 1 1 0 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *
-=127 -> _ 1 1 1   1 1 1 1 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * 
+<124      -> _ * * *   * * * * : 
+124-255   -> _ 1 1 1   1 1 0 0 : * * * *   * * * *
+256-2^16  -> _ 1 1 1   1 1 0 1 : * * * *   * * * * : * * * *   * * * *
+2^16-2^32 -> _ 1 1 1   1 1 1 0 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *
+2^32-2^64 -> _ 1 1 1   1 1 1 1 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *  : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *
 ```
 
 (* is a wildcard for bytes that can have any value, i.e. used to encode the actual integer).
@@ -434,23 +430,24 @@ outputs: for transactions with 256-2^16 outputs `FlagVarInt` will result in 3-by
 Sample deserialization code:
 
 ```rust
-fn parse_flagvarint() -> u32 {
+fn parse_flagvarint() -> (u32, bool) {
     let flag_firstbyte : u8 = read_byte();
     let flag = flag_firstbyte.clone() & 0x80;
     let firstbyte = flag_firstbyte - flag;
-    match firstbyte ^ 0x7F {
-      0x00 => return read_byte(), // ... read and shift next bytes
-      0x01 => return (read_byte() as u32)
-                   + ((read_byte() as u32) << 8), // ... read and shift next 2 bytes
-      0x02 => return (read_byte() as u32)
-                   + ((read_byte() as u32) << 8) 
-                   + ((read_byte() as u32) << 16), // ... read and shift next 3 bytes
-      0x03 => return (read_byte() as u32)
-                   + ((read_byte() as u32) << 8) 
-                   + ((read_byte() as u32) << 16) 
-                   + ((read_byte() as u32) << 24), // ... read and shift next 4 bytes
-      _ => return firstbyte,
-    }
+    let value = match firstbyte {
+      124 => read_byte(),                    // ... read and shift next byte
+      125 => (read_byte() as u32)
+             + ((read_byte() as u32) << 8),  // ... read and shift next 2 bytes
+      126 => (read_byte() as u32)
+             + ((read_byte() as u32) << 8) 
+             + ((read_byte() as u32) << 16), // ... read and shift next 3 bytes
+      127 => (read_byte() as u32)
+             + ((read_byte() as u32) << 8) 
+             + ((read_byte() as u32) << 16) 
+             + ((read_byte() as u32) << 24), // ... read and shift next 4 bytes
+      _ => firstbyte,
+    };
+    return (value, flag == 0x80);
 }
 ```
 
@@ -493,17 +490,16 @@ i16        | 0x06 | Signed 16-bit integer         | 2    | two bytes (word)
 i32        | 0x07 | Signed 32-bit integer         | 4    | four bytes (double word)
 i64        | 0x08 | Signed 64-bit integer         | 8    | eight bytes (quadruple word)
 vi         | 0x09 | Variable-length unsigned integer | 1-9 | 
-svi        | 0x0a | Short variable-length unsigned integer | 1-5 | 
-fvi        | 0x0b | Flagged variable-length unsigned integer | 1-5 | 
-str        | 0x0c | String                        | vi+n | vi(length)+bytes
-bytes      | 0x0d | Byte string                   | vi+n | vi(length)+bytes
+fvi        | 0x0a | Flagged variable-length unsigned integer | 1-5 | 
+str        | 0x0b | String                        | vi+n | vi(length)+bytes
+bytes      | 0x0c | Byte string                   | vi+n | vi(length)+bytes
 pubkey     | 0x10 | Public key in compact format  | 33   | 
 sha256     | 0x11 | Single SHA256 hash            | 32   |
 sha256d    | 0x12 | Double SHA256 hash            | 32   |
 ripmd160   | 0x13 | Single RIPMD160 hash          | 20   |
 hash160    | 0x14 | SHA256 hash followed by RIPMD160 | 20 |
 outpoint   | 0x20 | Transaction output            | 33-41 | `sha256d, vi`
-soutpoint  | 0x21 | Short transaction output      | 1-37 | `svi, [sha256d]`
+soutpoint  | 0x21 | Short transaction output      | 1-37 | `vi, [sha256d]`
 
 
 #### StateType
