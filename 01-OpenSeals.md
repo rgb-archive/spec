@@ -420,12 +420,18 @@ of off-chain client-side stored data. These types are:
 and supports values only up to 32-bit integers. In general, it helps to save a byte on signaling some information inside
 the proofs and seals.
 
+Since fvi is used with the data that are less than 2^23 (like transaction output numbers, `vouts`, or number of seals
+within a single proof), values of `0x7F` and `0xFF` in the first byte has a special meaning: instead of representing
+following 64-bit integer (like `0xFF` first byte does in bitcoin variable integer), it is reserved to function as a 
+"flagged data separator": it is not followed by any integer value and has contectual meaning which can be used depending
+on the protocol.
+
 ```
 <124      -> _ * * *   * * * * : 
 124-255   -> _ 1 1 1   1 1 0 0 : * * * *   * * * *
 256-2^16  -> _ 1 1 1   1 1 0 1 : * * * *   * * * * : * * * *   * * * *
 2^16-2^32 -> _ 1 1 1   1 1 1 0 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *
-2^32-2^64 -> _ 1 1 1   1 1 1 1 : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *  : * * * *   * * * * : * * * *   * * * * : * * * *   * * * * : * * * *   * * * *
+separator -> _ 1 1 1   1 1 1 1
 ```
 
 (* is a wildcard for bytes that can have any value, i.e. used to encode the actual integer).
@@ -576,31 +582,32 @@ seals:
 ```
 
 ```
-00000000  81 2d 2b 27 81 96 3b a6  41 62 1e c1 eb 72 fb 7a  |.-+'..;.Ab...r.z|
-00000010  6e 24 4f 67 24 3b ec 95  3a f8 f7 68 ff 90 09 d1  |n$Og$;..:..h....|
-00000020  fe 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |..W....b..F..$@>|
+00000000  81 2f 79 45 ba 87 14 6b  dc cb 7a be 25 3a 26 7f  |./yE...k..z.%:&.|
+00000010  67 14 16 f2 60 53 38 6a  13 62 b4 23 12 25 23 e8  |g...`S8j.b.#.%#.|
+00000020  8d 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |..W....b..F..$@>|
 00000030  ed 6c 3f 5b a5 8d a0 12  3b 39 2a b0 b1 fa 23 30  |.l?[....;9*...#0|
-00000040  6f 27 04 04 00 57 00 bd  cc fc 62 09 a5 46 0d c1  |o'...W....b..F..|
+00000040  6f 27 04 00 00 57 00 bd  cc fc 62 09 a5 46 0d c1  |o'...W....b..F..|
 00000050  24 40 3e ed 6c 3f 5b a5  8d a0 12 3b 39 2a b0 b1  |$@>.l?[....;9*..|
-00000060  fa 23 30 6f 27 01 57 00  bd cc fc 62 09 a5 46 0d  |.#0o'.W....b..F.|
-00000070  c1 24 40 3e ed 6c 3f 5b  a5 8d a0 12 3b 39 2a b0  |.$@>.l?[....;9*.|
-00000080  b1 fa 23 30 6f 27 03 57  00 bd cc fc 62 09 a5 46  |..#0o'.W....b..F|
-00000090  0d c1 24 40 3e ed 6c 3f  5b a5 8d a0 12 3b 39 2a  |..$@>.l?[....;9*|
-000000a0  b0 b1 fa 23 30 6f 27 02  57 00 bd cc fc 62 09 a5  |...#0o'.W....b..|
-000000b0  46 0d c1 24 40 3e ed 6c  3f 5b a5 8d a0 12 3b 39  |F..$@>.l?[....;9|
-000000c0  2a b0 b1 fa 23 30 6f 27  05 fe 40 42 0f 00 20 1a  |*...#0o'..@B.. .|
-000000d0  50 72 69 76 61 74 65 20  43 6f 6d 70 61 6e 79 20  |Private Company |
-000000e0  4c 74 64 20 53 68 61 72  65 73 03 50 4c 53 01 02  |Ltd Shares.PLS..|
-000000f0  62 b0 6c b2 05 c3 de 54  71 7e 0b c0 ea b2 08 8b  |b.l....Tq~......|
-00000100  0e db 9b 63 fa b4 99 f6  ca c8 75 48 ca 20 5b e1  |...c......uH. [.|
-0```
+00000060  fa 23 30 6f 27 7f 01 57  00 bd cc fc 62 09 a5 46  |.#0o'..W....b..F|
+00000070  0d c1 24 40 3e ed 6c 3f  5b a5 8d a0 12 3b 39 2a  |..$@>.l?[....;9*|
+00000080  b0 b1 fa 23 30 6f 27 7f  03 57 00 bd cc fc 62 09  |...#0o'..W....b.|
+00000090  a5 46 0d c1 24 40 3e ed  6c 3f 5b a5 8d a0 12 3b  |.F..$@>.l?[....;|
+000000a0  39 2a b0 b1 fa 23 30 6f  27 7f 02 57 00 bd cc fc  |9*...#0o'..W....|
+000000b0  62 09 a5 46 0d c1 24 40  3e ed 6c 3f 5b a5 8d a0  |b..F..$@>.l?[...|
+000000c0  12 3b 39 2a b0 b1 fa 23  30 6f 27 ff 05 fe 40 42  |.;9*...#0o'...@B|
+000000d0  0f 00 24 03 50 4c 53 1a  50 72 69 76 61 74 65 20  |..$.PLS.Private |
+000000e0  43 6f 6d 70 61 6e 79 20  4c 74 64 20 53 68 61 72  |Company Ltd Shar|
+000000f0  65 73 00 00 ff 01 00 02  62 b0 6c b2 05 c3 de 54  |es......b.l....T|
+00000100  71 7e 0b c0 ea b2 08 8b  0e db 9b 63 fa b4 99 f6  |q~.........c....|
+00000110  ca c8 75 48 ca 20 5b e1                           |..uH. [.|
+```
 
 ```
 0000000 81                                                  Flag-prefixed version
 
-0000000    2d 2b 27 81 96 3b a6 41 62 1e c1 eb 72 fb 7a     Schema ID
-0000010 6e 24 4f 67 24 3b ec 95 3a f8 f7 68 ff 90 09 d1     sm1p954j0qvk8wnyzcs7c84h97m6dcjy7eey80kf2whc7a50lyqf68lq0claj8
-0000020 fe 
+0000000    2f 79 45 ba 87 14 6b dc cb 7a be 25 3a 26 7f     Schema ID
+0000010 67 14 16 f2 60 53 38 6a 13 62 b4 23 12 25 23 e8     sm1p9au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
+0000020 8d 
 
 0000020    02                                               Network identifier (bitcoin testnet)
 
@@ -608,44 +615,61 @@ seals:
 0000030 ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1 fa 23 30     5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
 0000040 6f 27 04 
 
-0000040          04                                         Number of seals
+0000040          00                                         Proof type code
 
 0000040             00 57 00 bd cc fc 62 09 a5 46 0d c1     Seal #1 short outpoint
 0000050 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1
 0000060 fa 23 30 6f 27 
 
-0000060                01 57 00 bd cc fc 62 09 a5 46 0d     Seal #2 short outpoint
-0000070 c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0
-0000080 b1 fa 23 30 6f 27 
+0000060                7f                                   Special byte signalling seal type switch
 
-0000080                   03 57 00 bd cc fc 62 09 a5 46     Seal #3 short outpoint
-0000090 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a
-00000a0 b0 b1 fa 23 30 6f 27 
+0000060                   01 57 00 bd cc fc 62 09 a5 46     Seal #2 short outpoint
+0000070 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a
+0000080 b0 b1 fa 23 30 6f 27
 
-00000b0                      02 57 00 bd cc fc 62 09 a5     Seal #4 short outpoint
-00000b0 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39
-00000c0 2a b0 b1 fa 23 30 6f 27
+0000080                      7f                             Special byte signalling seal type switch
 
-00000c0                         05                          Length of sealed state data
+0000080                         03 57 00 bd cc fc 62 09      Seal #3 short outpoint
+0000090 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b
+00000a0 39 2a b0 b1 fa 23 30 6f 27 
 
-00000c0                            fe 40 42 0f 00           Sealed state
+00000a0                            7f                       Special byte signalling seal type switch
 
-00000c0                                           20        Length of metadata
+00000a0                               02 57 00 bd cc fc     Seal #4 short outpoint
+00000b0 62 09 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0
+00000c0 12 3b 39 2a b0 b1 fa 23 30 6f 27 
 
-00000c0                                              1a     String "Private Company Ltd Shares"
-00000d0 50 72 69 76 61 74 65 20 43 6f 6d 70 61 6e 79 20
-00000e0 4c 74 64 20 53 68 61 72 65 73 
+00000c0                                  ff                Special byte signalling end of seal sequence data
 
-00000e0                               03 50 4c 53           String "PLS"
+00000c0                                     05              Length of sealed state data
 
-00000e0                                           01        Dust limit
+00000c0                                        fe 40 42     Sealed state
+00000d0 0f 00
 
-00000e0                                              02     Original public key
-00000f0 62 b0 6c b2 05 c3 de 54 71 7e 0b c0 ea b2 08 8b
-0000100 0e db 9b 63 fa b4 99 f6 ca c8 75 48 ca 20 5b e1
+00000d0       23                                            Length of metadata
+
+00000d0          03 50 4c 53                                Field #1: String "PLS"
+
+00000d0                      1a 50 72 69 76 61 74 65 20     Field #2: String "Private Company Ltd Shares"
+00000e0 43 6f 6d 70 61 6e 79 20 4c 74 64 20 53 68 61 72
+00000f0 65 73
+
+00000f0       00                                            Field #3: No value for `description`
+
+00000f0          00                                         Field #4: No value for `url`
+
+00000f0             ff                                      Field #5: No value for `max_supply`
+
+00000f0                01                                   Field #6: fvi 01 for `dust_limit`
+
+00000f0                   00                                Field #7: No value for `singnature`
+
+00000f0                      02 62 b0 6c b2 05 c3 de 54     Original public key
+0000100 71 7e 0b c0 ea b2 08 8b 0e db 9b 63 fa b4 99 f6
+0000110 ca c8 75 48 ca 20 5b e1                        
 ```
 
-The hash of the proof must be `pf1p5lr9ffjr9fnvtu8cxkf9rruv050wl8c30aykr4frmlkh88z4ckdseqksq3`
+The hash of the proof must be `pf1pad7nmys33tpudflpaq84vp8npruv8xewhkzk2nr9jylc8m5v8k4s96fmkd`
 
 ### Schema test vector
 
@@ -660,16 +684,16 @@ field_types:
   title: str
   description: str
   url: str
-  max_supply: vi
+  max_supply: fvi
   dust_limit: vi
-  signature: signature
+  signature: ecdsa
 seal_types:
   assets: balance
   inflation: none
   upgrade: none
   pruning: none
 proof_types:
-  - title: Primary issue
+  - name: primary_issue
     fields:
       ticker: optional
       title: optional
@@ -683,7 +707,7 @@ proof_types:
       inflation: optional
       upgrade: single
       pruning: single
-  - title: Secondary issue
+  - name: secondary_issue
     unseals:
       inflation: single
     fields:
@@ -693,7 +717,7 @@ proof_types:
       assets: many
       inflation: optional
       pruning: single
-  - title: Asset version upgrade
+  - name: upgrade_signal
     unseals:
       upgrade: single
     fields:
@@ -702,14 +726,14 @@ proof_types:
       signature: optional
     seals:
       upgrade: single
-  - title: Asset history pruning
+  - name: history_prune
     unseals:
       pruning: single
     fields: [ ]
     seals:
       assets: many
       pruning: single
-  - title: Asset transfer
+  - name: asset_transfer
     unseals:
       assets: many
     fields:
@@ -725,20 +749,19 @@ proof_types:
 00000030  68 65 6d 61 10 06 74 69  63 6b 65 72 0b 05 74 69  |hema..ticker..ti|
 00000040  74 6c 65 0b 0b 64 65 73  63 72 69 70 74 69 6f 6e  |tle..description|
 00000050  0b 03 75 72 6c 0b 0a 6d  61 78 5f 73 75 70 70 6c  |..url..max_suppl|
-00000060  79 09 0a 64 75 73 74 5f  6c 69 6d 69 74 09 09 73  |y..dust_limit..s|
+00000060  79 0a 0a 64 75 73 74 5f  6c 69 6d 69 74 09 09 73  |y..dust_limit..s|
 00000070  69 67 6e 61 74 75 72 65  31 04 06 61 73 73 65 74  |ignature1..asset|
 00000080  73 01 09 69 6e 66 6c 61  74 69 6f 6e 00 07 75 70  |s..inflation..up|
 00000090  67 72 61 64 65 00 07 70  72 75 6e 69 6e 67 00 05  |grade..pruning..|
-000000a0  0d 50 72 69 6d 61 72 79  20 69 73 73 75 65 07 02  |.Primary issue..|
+000000a0  0d 70 72 69 6d 61 72 79  5f 69 73 73 75 65 07 02  |.primary_issue..|
 000000b0  00 01 03 00 01 04 00 01  05 00 01 06 00 01 07 01  |................|
 000000c0  01 08 00 01 00 04 00 01  ff 01 00 01 02 01 01 03  |................|
-000000d0  01 01 0f 53 65 63 6f 6e  64 61 72 79 20 69 73 73  |...Secondary iss|
+000000d0  01 01 0f 73 65 63 6f 6e  64 61 72 79 5f 69 73 73  |...secondary_iss|
 000000e0  75 65 02 05 00 01 08 00  01 01 01 01 01 03 00 01  |ue..............|
-000000f0  ff 01 00 01 03 01 01 15  41 73 73 65 74 20 76 65  |........Asset ve|
-00000100  72 73 69 6f 6e 20 75 70  67 72 61 64 65 03 00 01  |rsion upgrade...|
-00000110  01 01 00 01 08 00 01 01  02 01 01 01 02 01 01 15  |................|
-00000120  41 73 73 65 74 20 68 69  73 74 6f 72 79 20 70 72  |Asset history pr|
-00000130  75 6e 69 6e 67 00 01 03  01 01 02 00 01 ff 03 01  |uning...........|
-00000140  01 0e 41 73 73 65 74 20  74 72 61 6e 73 66 65 72  |..Asset transfer|
-00000150  01 00 00 01 01 00 01 ff  01 00 00 ff              |............|
+000000f0  ff 01 00 01 03 01 01 0e  75 70 67 72 61 64 65 5f  |........upgrade_|
+00000100  73 69 67 6e 61 6c 03 00  01 01 01 00 01 08 00 01  |signal..........|
+00000110  01 02 01 01 01 02 01 01  0d 68 69 73 74 6f 72 79  |.........history|
+00000120  5f 70 72 75 6e 65 00 01  03 01 01 02 00 01 ff 03  |_prune..........|
+00000130  01 01 0e 61 73 73 65 74  5f 74 72 61 6e 73 66 65  |...asset_transfe|
+00000140  72 01 00 00 01 01 00 01  ff 01 00 00 ff           |r............|
 ```
