@@ -20,13 +20,19 @@
   * [Versioning](#versioning)
     * [Commitment and serialization versioning](#commitment-and-serialization-versioning)
     * [Schema version upgrades](#schema-version-upgrades)
-* [Serialization formats](#serialization-formats)
+* [Consensus serialization](#consensus-serialization)
   * [Data types](#data-types)
     * [FlagVarInt](#flagvarint)
-  * [Proof](#proof)
-    * [Seal](#seal)
-  * [Schema](#schema)
-    * [MetaField](#metafield)
+  * [Proof serialization](#proof-serialization)
+    * [Header serialization](#header-serialization)
+    * [Body serialization](#body-serialization)
+      * [Seals serialization](#seals-serialization)
+      * [State serialization](#state-serialization)
+      * [Metadata serialization](#metadata-serialization)
+    * [Original public key serialization](#original-public-key-serialization)
+    * [Prunable data serialization](#prunable-data-serialization)
+  * [Schema serialization](#schema-serialization)
+    * [FieldType](#fieldtype)
     * [StateType](#statetype)
     * [SealType](#sealtype)
     * [ProofType](#prooftype)
@@ -220,7 +226,7 @@ further reduce risk of undesirable collisions, since nowhere in the Bitcoin prot
 two (non-double) SHA256 hashes <https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes>.
 
 The whole algorithm thus looks in the following way:
-1. Serialize proof with a procedure described in the [Proof](#proof) section
+1. Serialize proof with a procedure described in the [Proof serialization](#proof-serialization) section
 2. Compute SHA256 hash of the serialized data, which is also will serve as a unique identifier for the proof: 
    `id = SHA256(serialized_proof)`
 1. Get result of `hash(message, tag) := SHA256(SHA256(tag) || SHA256(tag) || message)` function
@@ -330,7 +336,8 @@ The proof MAY then be published in order to prove that the part of the state was
 The schema in OpenSeals defines the exact structure of a seal-bound state, including:
 * relation between seals pointing to transaction outputs and parts of the state;
 * structure for state data and metadata fields;
-* serialization and deserialization rules for state data and metadata (see [Proof data structure](#proof) section)
+* serialization and deserialization rules for state data and metadata (see [Proof serialization](#proof-serialization) 
+  section)
 * rules to validate the state and state changes, which are additional to the validation rules used by OpenSeals 
   framework
 
@@ -339,9 +346,9 @@ The schema can be defined in formal or an informal way. One of OpenSeals schema 
 and transfer.
 
 Schemata are identified by a cryptographic SHA256-hash of the schema name (for informally-defined schemas) or 
-double SHA256-hash of serialized formal schema definition data (see [Schemata definition](#schema) section).
-OpenSeals-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and use it 
-in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
+double SHA256-hash of serialized formal schema definition data (see [Schema serialization](#schema-serialization) 
+section). OpenSeals-enabled user agents MAY use the hash to locate and download schema formal definition file (QSD) and 
+use it in order to parse the sealed state and validate parts of it in relation to schema-defined state validation rules.
 
 
 ### Versioning
@@ -359,9 +366,9 @@ Versioning defines:
 
 The first two parts are defined using generic versioning field, present in *root* and *version upgrade proofs*.
 
-The version used by other proofs is defined by the [root proof](#proof-serialization-formats), and *state DAG* MUST by 
+The version used by other proofs is defined by the [root proof](#proof-formats), and *state DAG* MUST by 
 default follow the version provided by the *root proof*. However, it is possible to update the version using special 
-[**version upgrade proof**](#proof-serialization-formats), signifying that all *descendant proofs* of it must follow 
+[**version upgrade proof**](#proof-formats), signifying that all *descendant proofs* of it must follow 
 the new updated OpenSeal version.
 
 A special attention must be paid to such version upgrades. These updates, in order to address the associated risk of
@@ -380,16 +387,20 @@ example, version upgrades in the [RGB protocol](./04-RGB.md)).
 
 The third form of versioning allows modification of the proof `meta`, `state` and `seals` format with migration to a 
 newer schema version. This upgrade is performed also using *version upgrade proofs* with non-zero *schema* field
-(see [proof serialization formats](#proof-serialization-formats) for more information). Unlikely commitment serialization
+(see [proof serialization formats](#proof-formats) for more information). Unlikely commitment serialization
 a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants. Moreover, migration
 for the new proof format can be done without unsealing such *version upgrade proof*, but just by having ordinary proofs
 *published after the version upgrade proof* (in terms of block height) signalling a new version in its first field.
 
 
-## Serialization formats
+## Consensus serialization
 
 The following chapters explain the exact data structure and serialization format for different entities which constitute
-parts of OpenSeals framework.
+parts of OpenSeals framework. Like with bitcoin serialization format for transactions and block data, proofs and schema
+serialization rules MUST BE strictly followed by all software working with OpenSeals as a requirement for the whole
+P2P network to have the same view on a given proof history data. Thus, serialization format defined in this section is
+named "consensus serialization", and it's deterministic property allows to compute *proof ids* and *schema ids* in a 
+consistent way, matching values stored with in cryptographic commitments into the bitcoin blockchain.
 
 ### Data types
 
@@ -423,7 +434,7 @@ the proofs and seals.
 Since fvi is used with the data that are less than 2^23 (like transaction output numbers, `vouts`, or number of seals
 within a single proof), values of `0x7F` and `0xFF` in the first byte has a special meaning: instead of representing
 following 64-bit integer (like `0xFF` first byte does in bitcoin variable integer), it is reserved to function as a 
-"flagged data separator": it is not followed by any integer value and has contectual meaning which can be used depending
+"flagged data separator": it is not followed by any integer value and has contextual meaning which can be used depending
 on the protocol.
 
 ```
@@ -461,12 +472,200 @@ fn parse_flagvarint() -> (u32, bool) {
 ```
 
 
-### Proof
+### Proof serialization
+
+All proof formats are serialized with the same rules and in a way that enables reading and verifying proof seals and
+commitments without knowing anything about the format for the proof state and metadata (i.e. without knowledge of
+the schema). Serialization format is highly optimized for the size of resulting data.
+
+The same serialization format applies both to on-disk stored data and network-transferred data.
+
+Serialized proof consists of four main parts:
+* `proof_header`, which is specific to the [proof format](#proof-formats),
+* `proof_body`, which has the same structure for all proof formats,
+* `pubkey_structure`, which is an optional field present only in [P2C-committed proofs](#pay-to-contract)
+* `prunable_data`: data that can be discarded on disk or during network transfers; for more information on them check 
+  the [Proofs](#proofs) section)
+
+Binary bytecode of `proof_header` followed `proof_body` represents a source message for a double SHA256, which is used
+as a proof identification hash (`proof_id`) in creating [cryptographic commitments](#cryptographic-commitments) to 
+bitcoin blockchain. `pubkey` is not a part of the `proof_id`, but it is used in the construction of 
+[P2C commitment](#public-key-tweaking-procedure).
 
 ![Proof consensus serialization format](./assets/proof_consensus_serialization.png)
 
+#### Header serialization
 
-### Schema
+Proof format is determined from the header data by using two flags, stored within [FlagVarInt](#flagvarint) values,
+encoding version and network number. If the first flag in the version field (first byte of the proof data) is set to
+`1`, than the proof is either of *root* or *upgrade* format and the version field MUST BE followed by 32 little-endian
+bytes of the `schema_id` field and another FlagVarInt value representing `network`. The flag in this value determines
+if the proof is a *root proof* (flag is set) or *upgrade proof* (flag is unset). Since version upgrade proofs can't
+redefine the type of the network, the value of the `network` field for them MUST be always set to zero (i.e. no network
+version change, since network type numbers start with `0x01`). Also, *upgrade proofs* may not specify new `schema_id`;
+in this case corresponding field MUST BE filled with 32 zero bytes. For *root proofs*, `network` field MUST BE followed
+by `root` field encoded in the standard bitcoin serialization format for transaction `OutPoint` (32 bytes for `txid`
+followed by `VarInt`-encoded output number).
+
+If the flag in the first `ver` byte is set to zero, proof format is an *ordinary proof* or *state destruction proof*, 
+which can differentiated using the [number of the seals](#seals-serialization) in the [proof body](#body-serialization).
+
+Header parsing algorithm summary:
+```python
+proof = Proof()
+fver = read_fvi() # function for reading FlagVarInt bytes with return value having two fields: `value` and `flag`
+proof.ver = fver.value
+if ver.flag is True:
+    schema_id = read_bytes(32)
+    fnetwork = read_fvi()
+    if fnetwork.flag is True:
+        proof.network = fnetwork.value
+        proof.format = ProofFormat.root
+        proof.schema_id = schema_id
+        if schema_id eq bytes([0] * 32):
+            raise ProofStructureError(ProofStructureError.noSchemaInRootProof)
+        proof.outpoint = read_outpoint(allow_zero = False)
+    else:
+        if fnetwork.value is not 0:
+            raise ProofStructureError(ProofStructureError.networkChangeInUpgradeProof)
+        proof.format = ProofFormat.upgrade
+else:
+    proof.format = ProofFormat.ordinary
+    # read body (see below)
+    try:
+        fseals = read_fvi() # function reading FlagVarInt value must handle special byte values 0xFF and 0x7F
+                            # here we do this via exceptions
+    except FlagVarIntSeparatorFFByte:
+        proof.format = ProofFormat.state_destruction
+```
+
+#### Body serialization
+
+Within the proof body there are three parts with very specific structure, required for the dense data encoding:
+`seal_sequence`, `sealed_state` and `metadata`. The encoding of these data also organized in a way that allows to
+read stream and parse files from the disk without knowledge of the particular seal types, state and metadata structure
+(i.e. [schema](#schema-serialization)). Below we provide details on their encoding format.
+
+Proof body starts with a single byte representing [proof_type](#prooftype) from corresponding [schema](#schemata).
+If the schema is unknown to the client, it may skip this byte. Proof type (together with schema data) defines an
+exact way how sealed state and metadata can be parsed; without it a client can only read them as a sequence of bytes
+having known length (see below).
+
+Starting from the second byte of the proof body `seal_sequence` starts. It has no predefined length, but by following
+special parsing algorithm a software can deterministically read all seals data.
+
+##### Seals serialization
+
+`seal_sequence` is serialized in a form of consecutive transaction outpoints in a short form, `soutpoint` (see details 
+in the [data types section](#data-types)) optionally separated by special separating byte with value `0x7F`. The 
+sequence is terminated with `0xFF` byte. Since each short OutPoint starts with [FlagVarInt](#flagvarint) value, 
+representing `vout` number of the sealed transaction output, and FlagVarInt has `0x7F` and `0xFF` values reserved as a
+special separator bytes, a deserializer can easily parse whole `seal_sequence` up to the terminating `0xFF` byte:
+
+```python
+seals = []
+seal_type_no = 0
+while True:
+    try:
+        fvout = read_fvi()
+    except FlagVarIntSeparator7FByte: # 0x7F value is met
+        seal_type_no += 1
+    except FlagVarIntSeparatorFFByte: # 0xFF value is met
+        break
+    if fvout.flag is True:
+        txid = read_bytes(32)
+    else:
+        txid = None
+    seals.append((fvout.value, txid, seal_type_no))
+```
+
+The separating byte is required to distinguish seals of different [`seal_type`](#sealtype) value. If a client
+software is unaware of the proof schema, it can simply ignore this separating bytes – and still be able to verify
+the proof integrity and which of the seals are unsealed with transaction spending associated outpoints.
+
+If the schema is known, `0x7F` separating byte is used to increment *seal type counter* (like `seal_type_no` from the 
+sample script above), and associate each of the read seals with specific seal type from the schema: this number
+corresponds to the seal type with the same index number withing schema data.
+
+##### State serialization
+
+State is serialized in form of variable-length byte array starting with `VarInt` length value. State can be only parsed
+when the schema is known.
+
+In order to parse the state, a client must iterate over the seal data and read from the state byte sequence according
+to the [`seal_type`](#sealtype) data format.
+
+##### Metadata serialization
+
+Metadata serialized in a similar way to the state, however, unlike the state, which has 1-to-1 correspondence to the 
+seals, each proof may have different number of its metadata fields (see [FieldType](#fieldtype) description for the
+details). 
+
+Briefly, schema defines which types of metadata fields can be present in the corresponding proof type (defined by
+the `proof_type` field in the first byte of the proof body data), and how many occurrences of the field are allowed.
+Lower and upper bounds for the number of occurrences can form the following variants:
+* **optional field**, which can be present from 0 to at most one time;
+* **single field**, which can be present exactly one time;
+* **fixed field**, for which the lower bound is equial to the upper bound, signifying that it can be present only
+  exactly defined number of times
+* **multiple field**, which is always present and can be present zero, single or multiple number of times
+
+These types are serialized in the following way:
+
+Occurrence type | Lower limit | Upper limit | Serialization format  | Comments
+--------------- | -----------:| -----------:| --------------------- | --------
+single          | 1           | 1           | `<field_data>`        | Single field data
+fixed           | N           | N           | `<field_data>{n}`     | Multiple field data
+optional        | 0           | 1           | `<type_specific>  `   | Depends on the field data type (see the table below)
+multiple        | 0 or 1      | 0xFF (=any) | `vi,<field_data>{vi}` | Number of the actual occurrences followed by a list of field data
+
+where `<field_data>` is a serialization format for the [data type](#data-types) used by the metadata field (as defined
+in the `field_types` section of the [schema](#schema-serialization)).
+
+Optional occurrence type is encoded depending on the type of the field data:
+
+Data type   | Encoding          | Value for no data | Details
+----------- | ----------------- | ----------------- | -----------
+`str`       | `vi,<string>`     | `0x00`            | Zero-length string means *no value*
+`fvi`       | `fvi`             | `0xFF`            | `0xFF` separator byte for [FlagVarInt](#FlagVarInt) means *no value*
+Hashes      | `0x00{n}`         | `0x00` x hash len | If hash is represented by zero bytes, the field has *no value*
+`soutpoint` | `fvi,byte{32}`    | `0xFF`            | `0xFF` separator byte for [FlagVarInt](#FlagVarInt) representing vout for the transaction output means *no value*
+`pubkey`    | `flag,[byte{32}]` | `0x00`            | Pubkey is encoded in the compressed format, so it always start with `0x02` or `0x03` byte. Thus, it starts with `0x00` byte than no public key is provided
+
+The rest of data types can't be an optional value, and a schema defining field to have a field type with 0 to 1 value
+with some other data type is invalid.
+
+#### Original public key serialization
+
+Proof [commitment type](#cryptographic-commitments) (P2C or ORB) is defined by the presense of public key data following
+proof body data sequence. If the next byte after proof body equals `0x00`, it means that no original public key is
+provided and the proof is committed with [OP_RETURN-based commitment](#op_return-based) – and, if corresponding 
+transaction does not have OP_RETURN script at the 
+[deterministically-defined output](#deterministic-definition-of-committed-output) than the whole proof is invalid.
+
+Pubkey data are encoded in the compressed format, so it always start with `0x02` or `0x03` byte. Thus, if the first
+byte following proof body equals `0x00`, proof is committed with OP_RETURN.
+
+### Prunable data serialization
+
+The last part of the proof is optional prunable data. These data may be completely absent in case of disk-stored proof
+files, so EOF following public key data will mean pruned proof. However, for network transfers, we can't define end of
+proof stream, so in order to specify the absence of the prunable proof part, a proof MUST BE terminated with an extra 
+`0x00` byte.
+
+If the first byte following public key data is non-zero, than it is used as a flag byte signifying which of the prunable
+data are present (see [Proofs section](#proofs) for more details on the prunable data):
+
+Binary mask  | Hex value | Data
+------------:| --------- | ------------
+ `0000 0001` | `0x01`    | Transaction id containing an output with proof commitment is present (`txid` field)
+ `0000 0010` | `0x02`    | List of *parent* transaction ids is present
+ 
+If binary mask of the first byte indicates presence of multiple prunable data, they are ordered in lowest to highest
+bit order of the first flag byte.
+
+
+### Schema serialization
 
 Schema file uniquely defines which kinds of proofs can be used for the given schema; how they can be constructed into
 a DAG via different seals and which kinds of state and metadata they have to provide. First, schema defines all possible
@@ -478,14 +677,14 @@ Field         | Serialization format    | Description
 `name`        | `str`                   | Schema name (human-readable string)
 `schema_ver`  | `vi`, `u8`, `u8`        | Schema version in [semantic versioning format](https://semver.org/)
 `prev_schema` | `sha256d`               | Previous schema version reference or 256 zero-bits for the first schema definition
-`meta_fields` | `vi[`[`MetaField`](#metafield)`]`| Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
+`field_types` | `vi[`[`FieldType`](#fieldtype)`]`| Definition of all possible fields with their corresponding data types that can be used in the `meta` section of the proos
 `seal_types`  | `vi[`[`SealType`](#sealtype)`]`  | Definition of different seal types and corresponding state types that can be used by the proofs 
 `proof_types` | `vi[`[`ProofType`](#prooftype)`]`| List of possible proof formats, bridging meta fields and seal types together with their validation rules
 
 
-#### MetaField
+#### FieldType
 
-Metadata are composed of metafield types. Each metafield type is encoded as a tuple of `(title: str, type: u8)`, 
+Metadata are composed of field types. Each metafield type is encoded as a tuple of `(title: str, type: u8)`, 
 where title string is bitcoin-encoded string. Values for each types are given in the following table:
 
 Type Id    | Value identifying type | Description | Size | Serialization
@@ -547,12 +746,13 @@ under the corresponding index within `state_types` list.
 The first proof listed in the `proot_fypes` array MUST BE the type used for root proofs. The other proof types are 
 defined by the type of seal they unseal; there can be only a single proof type unsealing each type of seal.
 
-Field         | Type                    | Description
-------------- | ----------------------- | ---------------------------------------
-`title`       | `str`                   | Human-readable name of the proof type
-`unseals`     | `vi`                | Index of `SealType` which has to be unsealed by the proof; must be abset for the first proof type in the list (since it is a root proof which does not unseal any data)
-`meta_fields` | `vi[`[`fvi`](#flagvarint)`]` | Indexes of `MetaField` that can be used by this proof type (with optionality flag)
-`seal_types`  | `vi[(vi, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
+Field            | Type               | Description
+---------------- | ------------------ | ---------------------------------------
+`title`          | `str`              | Human-readable name of the proof type
+`unseals`        | `vi`               | Index of `SealType` which has to be unsealed by the proof; must be abset for the first proof type in the list (since it is a root proof which does not unseal any data)
+`fields_allowed` | `vi[(vi, i8, i8)]` | Indexes of `FieldType` that can be used by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
+`seals_allowed`  | `vi[(vi, i8, i8)]` | Indexes of `SealType` that can be created by this proof type with minimum and maximum count; `-1` (`0xFF`) value signifies no minimum and no maximum limits correspondingly.
+
 
 ## Test vectors
 
@@ -561,24 +761,25 @@ Field         | Type                    | Description
 ```yaml
 ver: 1
 format: root
-schema: sm1p3tykae9nf5zlf4yw00hpeq6uajt5r532vtsphnsjc4eh0x5aqdaqmu2sjv
+schema: sm1p9au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
-pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
-metadata:
+type_name: primary_issue
+fields:
   title: Private Company Ltd Shares
   ticker: PLS
   dust_limit: 1
 seals:
-  - type: assets
+  - type_name: assets
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:0
     amount: 1000000
-  - type: inflation
+  - type_name: inflation
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:1
-  - type: upgrade
+  - type_name: upgrade
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:3
-  - type: pruning
+  - type_name: pruning
     outpoint: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:2
+pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
 ```
 
 ```
@@ -639,7 +840,7 @@ seals:
 00000b0 62 09 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0
 00000c0 12 3b 39 2a b0 b1 fa 23 30 6f 27 
 
-00000c0                                  ff                Special byte signalling end of seal sequence data
+00000c0                                  ff                 Special byte signalling end of seal sequence data
 
 00000c0                                     05              Length of sealed state data
 
