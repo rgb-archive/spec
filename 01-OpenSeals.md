@@ -375,9 +375,10 @@ A special attention must be paid to such version upgrades. These updates, in ord
 "double-spent attack" (or, multiple conflicting state changes), MUST follow very specific procedure:
 1. An on-chain committed valid *version upgrade proof* defines a new version for all descending proofs **except** itself.
    This proof MUST use and MUST BE validated with the commitment scheme rules from the *previous* version.
-3. All the descending proof unsealing at lease some of the seals defined by the *version upgrade proof* adapting a new
+3. All the descending proofs unsealing at least some of the seals defined by the *version upgrade proof* adapting a new
    version MUST adapt and MUST BE validated with the new commitment scheme as defined by the new version specification.
-4. There is no possibility to downgrade the version of the proofs that has adopted a commitment scheme upgrade.
+4. All outputs unsealed by a proof MUST have the same version for the associated parent proofs.
+5. There is no possibility to downgrade the version of the proofs that has adopted a commitment scheme upgrade.
 
 Creators of the *state DAG* (i.e. publishers of the *root proof*) MAY specify additional rules for version upgrade
 mechanics, like presence of specially-designed normal proof signaling their support for the version upgrade (see, for
@@ -388,9 +389,7 @@ example, version upgrades in the [RGB protocol](./04-RGB.md)).
 The third form of versioning allows modification of the proof `meta`, `state` and `seals` format with migration to a 
 newer schema version. This upgrade is performed also using *version upgrade proofs* with non-zero *schema* field
 (see [proof serialization formats](#proof-formats) for more information). Unlikely commitment serialization
-a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants. Moreover, migration
-for the new proof format can be done without unsealing such *version upgrade proof*, but just by having ordinary proofs
-*published after the version upgrade proof* (in terms of block height) signalling a new version in its first field.
+a schema upgrade is applied to the *version upgrade proof* as well as to all of its descendants.
 
 
 ## Consensus serialization
