@@ -1,0 +1,4 @@
+[submodule "python"]
+	path = python
+	url = https://github.com/rgb-org/python-openseals.git
+	branch = master
