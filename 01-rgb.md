@@ -1,165 +1,258 @@
 # RGB Protocol Specification #01: Contracts and Proofs
 
+* [Overview](#overview)
+  * [Versioning](#versioning)
 * [Commitment Scheme](#commitment-scheme)
-  * [OP_RETURN](#op_return)
   * [Pay-to-contract](#pay-to-contract)
+    * [Public key tweaking](#public-key-tweaking)
+  * [OP_RETURN](#op_return)
 * [Contracts](#contracts)
-  * [Re-issuance](#re-issuance)
-  * [Proof-of-burn](#proof-of-burn)
   * [Entity Structure](#entity-structure)
     * [Header](#header)
-  * [Blueprints and versioning](#blueprints-and-versioning)
-    * [Simple issuance: `0x01`](#simple-issuance-0x01)
-    * [Crowdsale: `0x02`](#crowdsale-0x02)
-    * [Re-issuance: `0x03`](#re-issuance-0x03)
+  * [Blueprint types](#blueprint-types)
+    * [Initial issuance](#initial-issuance)
+    * [Secondary issuance](#secondary-issuance)
+    * [Asset version upgrades](#upgrade)
+    * [Proofs history pruning](#pruning)
+    * [Crowdsale issuance](#crowdsale)
 * [Proofs](#proofs)
   * [Transfer proofs](#transfer-proofs)
-  * [Special proofs](#special-proofs)
-* [Structure](#structure)
-  * [Address-Based vs UTXO-Based](#address-based-vs-utxo-based)
-  * [RgbOutPoint](#rgboutpoint)
-* [Exemplified Process Description](#exemplified-process-description)
-  * [Basic Asset Issuance](#basic-asset-issuance)
-  * [On-chain Asset Transfer](#on-chain-asset-transfer)
-  * [Color Addition](#color-addition)
+  * [Asset assignments](#asset-assignments)
+  * [Multi-signature Asset Ownership](#multi-signature-asset-ownership)
+  * [Asset proof of burn](#proof-of-burn)
+  * [Version update specifics](#version-update-specifics)
+
+## Overview
+
+The protocol allows initial and secondary issuance, upgrades, transfers of digital assets (tokenised securities, collectionables etc) on top of LNP/BP technology stack. The assets are issued and re-issued using different types (called **blueprints**) of **RGB contracts** and are transferred using **RGB proofs**.
+
+In order to prevent double-spends, the protocol utilizes single-use-seals mechanism, originally proposed by Peter Todd. Briefly, contracts and proofs **[assign](#asset-assignments)** some defined amounts of assets to bitcoin transaction outputs, named **assigned assets** and **outputs with assigned assets** correspondingly. Each time an output with assigned assets is spent it implies the fact of the asset transfer, and a corresponding new proof for the asset transfer has to be created. To reach immutability, both contracts and proofs cryptographically commit their data into Bitcoin transaction outputs; these outputs are called **committed outputs** (see [Commitment Scheme](#commitment-scheme) section). For an initial asset issuance, contracts commit to a transaction spending some predefined bitcoin transaction outpoint; for secondary asset issuance — to the transaction spending committed output of the most recent issuance contract (see [Contract](#contracts) section for details). For asset transfer proofs, commitment outputs MUST BE placed into the transactions spending outputs with assigned assets, but the transferred assets can be assigned to some other external transactions, if required. Alongside asset assignments, each proof references hashes (unique identifiers) of its **parent** proofs and contracts, indicating the sources of the transferred assets (see [Proofs](#proofs) section for details).
+
+![RGB Protocol Overview](assets/rgb_overview.png)
+
+### Versioning
+
+The protocol can be updated in the future, affecting the structure of the entities which are used by it (contracts, proofs). In order to preserve the space used by those entities, we use strict serialization format which does not allow adding/removing fields or changing types of existing fields. Thus, each entity has its own version as its first field, which defines how the entity has to be parsed. 
+
+The version is a 16-bit integer, constructed of two main parts: major and minor version bits. The minor version is the lower (in little-endian Bitcoin encoding format) six bits (0-63); the major version is the upper ten bits. Minor version represents backward-compatible protocol changes ("soft-forks"), while major version increase represents incompatible changes ("hard-forks"). 
+
+Proofs MAY have different minor version than the issuing contract, however they can't differ in a major version from it. This is required in order to prevent potential double-spending: the changes in a commitment schemes are "hard-forks" without backward compatibility, and they will require increase of the major version. Since the proofs can't have a different major version than the issuing contract, it will be impossible to produce two proofs under the different commitment schemes utilizing incompatible versions.
+
+If the issuer would like to upgrade the contract major version, he needs to deploy a new [upgrade contract](#upgrade)  with the updated major version, so asset owners will be able to upgrade and migrate to a new version through it. 
+
+A special attention must be paid to the major upgrades changing the existing commitment schemes. Please check [proof version upgrade specifics](#version-update-specifics) section for the details.
+
+Contract major and minor version jointly defines the set of available contract blueprints and their structure.
+
+The current specification defines the structure for the 0.5 version of RGB contracts, their blueprints and transfer proofs. 
 
 ## Commitment Scheme
 
-In order to ensure immutability and prevent double spend, it's necessary to strongly bind Bitcoin transactions to contracts and proofs, in a way that makes it impossible to modify RGB entities at a later time without invalidating the underlying transaction.
+In order to ensure immutability and prevent double spend, it's necessary to strongly bind RGB contracts and asset transfer proofs to Bitcoin transaction outputs in a way that makes impossible to modify RGB entities at a later time without invalidating them. This is done with cryptographic commitments, that commit the hash of the contract or proof into the mined bitcoin transaction output – pretty much like it is done in the [OpenTimeStamps](https://opentimestamps.org/).
 
-In this specification we describe two commitment schemes available in the RGB protocol, both with some useful features and drawbacks. It's up to the issuer to choose which commitment scheme suits its needs the best, by setting the `commitment_scheme` flag in the contract.
+In this specification we describe two commitment schemes available in the RGB protocol: Pay-to-contract and OP_RETURN. Pay-to-contract scheme SHOULD BE the default recommended scheme, while OP_RETURN SHOULD BE be reserved only for asset transfer proofs that have to be compatible with hardware wallets, thus proofs under the same contract can use different commitment schemes. Contracts always MUST BE deployed only with pay to contract scheme.
 
-Every contract MUST be deployed using the `OP_RETURN` scheme, independently from which `commitment_scheme` is set.
+The reason of pay-to-contract being the default scheme is the reduction of Bitcoin blockchain pollution with asset transfer data and better privacy: pay-to-contract has higher protection from on-chain analysis tools.
 
-Every later proof MUST follow the scheme chosen in the contract.
+Contracts and proofs assign RGB assets to transaction(s) output(s) (see `issuance_txout` field in [contract header](#header) and `assignments` field in the [proof structure](#proofs) for the details). These transaction(s) MAY differ from a transaction the contract or the proof is committed to. In order to prevent a double spend, each time when a UTXO containing an RGB asset is spent, the spending transaction MUST contain new commitment to the proof of the asset spending. Proofs that are not committed to a transaction which spends **all** of the UTXOs corresponding to RGB assets given in the proof parents – or committed to some other transaction – MUST BE considered invalid.
 
-### OP_RETURN
+Which commitment scheme is used by a contract or a proof is defined by the presence of the `original_pubkey` field in their header.
 
-A transaction committing to a proof or contract using the `OP_RETURN` scheme is considered valid if:
+#### Deterministic definition of committed output
 
-1. There's at least one `OP_RETURN` output
-2. The first `OP_RETURN` output contains a 32-bytes push which is the `Double_SHA256` of the entity which the transaction is committing to.
+There MUST BE a single deterministic way of detecting a proof or a contract assigned to a transaction spending some of RGB assets, so it would not be possible to create several different versions of a proof or a contract. In order to achieve this, RGB defines a single way to find which specific transaction output MUST contain cryptographic commitment with either P2C or OP_RETURN commitment schemes. 
 
-![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
+The algorithm is designed in a way that helps to keep information of the output containing commitment private from any  party which may assume that the transaction must contain such commitment. The function combines two parameters: 
+* **fee amount** (`fee`): a public factor, which may be changed by the party spending an asset,
+* **entropy from previous proof** (`entropy`): a private factor, known only to those who has an access to the history of the proofs. This implies that such factor can't be changed by the party spending the asset, since it's predefined at the moment of receiving the asset.
+
+The committed output number `n` is determined by the following formula:  
+`n = (fee * entropy) mod count(outputs)`
+
+The current version of the specification uses RIPMD160 hash of the serialized proof as a source of `entropy`. For P2C proofs the proof is serialized _including_ the original public key field (`pubkey`). This different serialization and different hash type comparing to SHA256 hash used to create the commitment itself further reduces probability for some third-party to guess the number of the actual committed output. The root proof, which has no parent proofs, should take as an entropy value the RIPMD160 hash of the serialized schema type source to which it commits to.
 
 ### Pay-to-contract
 
-The commitment to a proof made using pay-to-contract is considered valid if:
+Proof commitment made with pay-to-contract (P2C) type SHOULD BE considered valid if, and only if:
 
-* Given `n = fee_satoshi mod num_outputs`
-* Given `h = double_sha256(proof)`
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) 
+   pays an arbitrary amount of satoshis to `P2PKH`, `P2WPKH` or `P2SH`-wrapped `P2WPKH`.
+2. The public key of this output is tweaked using the method described below
 
-1. The `n`th output pays an arbitrary amount of Bitcoin to a `P2WPKH` or a `P2PKH` (`P2PK` is considered insecure and not supported)
-2. The public key of this output is tweaked using the method described below and the tweak parameter is `h`
+Otherwise, the proof MUST BE considered as an invalid and MUST NOT BE accepted; the assets associated with the parent proofs MUST BE considered as lost.
+
+Rationale for not supporting other types of transaction outputs for the proof commitments:
+* `P2PK`: considered legacy and MUST NOT be used;
+* `P2WSH`: the present version of RGB specification does not provides a way to deterministically define which of the public keys are present inside the script and which are used for the commitment – however, this behaviour may change in the future (see the note above);
+* `P2SH`, except `P2SH`-wrapped `P2WPKH`, but not `P2SH`-wrapped `P2WSH`: the same reason as for `P2WSH`;
+* `OP_RETURN` outputs can't be tweaked, since they do not contain a public key and serve pre-defined purposes only. If it is necessary to commit to OP_RETURN output one should instead use [OP_RETURN commitment scheme](#op_return)
+* Non-standard outputs: tweak procedure can't be standardized.
+
+NB: since in the future (with the introduction of the future SegWit versions, like Taproot, MAST etc) the list of supported output types MAY change, assets allocated to invalid outputs MUST NOT BE considered as deterministically burned; in order to create a proper proof of burn user MUST follow the procedure described in the [Proof-of-burn section](#proof-of-burn)
 
 ![Pay-to-contract Commitment](assets/rgb_p2c_commitment.png)
 
 #### Public key tweaking
 
-The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/).
+The tweaking procedure has been previously described in many publications, such as [Eternity Wall's "sign-to-contract" article](https://blog.eternitywall.com/2018/04/13/sign-to-contract/). However, since the tweaking is already widely used practice ([OpenTimeStamps](https://petertodd.org/2016/opentimestamps-announcement), [merchant payments](https://arxiv.org/abs/1212.3257)) and will be even more adopted with the intruduction of [Taproot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-January/015614.html), [Graphroot](https://lists.linuxfoundation.org/pipermail/bitcoin-dev/2018-February/015700.html), [MAST](https://github.com/bitcoin/bips/blob/master/bip-0114.mediawiki) and many other proposals, the hash, used for public key tweaking under one standard (like this one) can be provided to some uninformed third-party as a commitment under the other standard (like Taproot), and there is non-zero chance of a collision, when serialized RGB contract or proof will present at least a partially-valid Bitcoin script or other code that can be interpreted as a custom non-RGB script and used to attack that third-party. In order to reduce the risk, we follow the practice introduced in the [Taproot BIP proposal](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) of prefixing the serialized RGB contract/proof with **two** hashes of RGB-specific tags, namely "rgb:contract" for contracts and "rgb:proof" for proofs. Two hashes are required to further reduce risk of undesirable collisions, since nowhere in the Bitcoin protocol the input of SHA256 starts with two (non-double) SHA256 hashes.
 
-1. Compute `h = double_sha256(proof)`
-2. Compute `new_pub_key = original_pubkey + double_sha256(original_pubkey || h) * G`
-3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pub_key` as public key
+The whole algorithm thus looks in the following way
+1. Serialize contract/proof with standard bitcoin transaction serialization rules `s = consensus_serialize(<contract> -or- <proof>)` and compute its hash, i.e. obtain `contract_id`/`proof_id` value: `id = SHA256(s)`
+1. Prefix it twice with a hash of a proper tag and compute double hash with `hash`<sub>tag</sub>`(m)` function introduced in the [Taproot BIP](https://github.com/sipa/bips/blob/bip-schnorr/bip-taproot.mediawiki#tagged-hashes) `h = hash`<sub>rgb:contract/rgb:proof</sub>`(original_pubkey || id)`, where `hash`<sub>tag</sub>`(message) := SHA256(SHA256(tag) || SHA256(tag) || message)`
+2. Compute `new_pubkey = original_pubkey + h * G`
+3. Compute the address as a standard Bitcoin `P2(W)PKH` using `new_pubkey` as public key
 
 In order to be able to spend the output later, the same procedure should be applied to the private key.
+
+### OP_RETURN
+
+This scheme MUST BE used only to commit the proofs created with a special hardware (digital wallets) which is unable to support signing of pay-to-contract output commitments. 
+
+A transaction committed to a proof using ORB type is considered valid if:
+
+1. The `n`th output defined by the [deterministic committed output](#deterministic-definition-of-committed-output) pays an arbitrary amount of satoshis to `OP_RETURN` output
+2. This output contains a 32-bytes push which is SHA256 of the entity which the transaction is committing to (i.e. SHA256 of serialized proof data, like in P2C commitments), prefixed with 'quicksilver' tag: `OP_RETURN <SHA256('quicksilver' || SHA256(serialized_proof))>`
+
+![OP_RETURN Commitment](assets/rgb_op_return_commitment.png)
+
 
 ## Contracts
 
 Contracts are entities that, once "deployed" on the Bitcoin blockchain, determine the creation of a new, unique asset with a specific set of characteristics (like total supply, divisibility, dust limit, etc.) and possibly provably linked to some kind of commitment by the Issuer.
 
-Every asset is identified by the `asset_id`, which is the hash of some fields of the contracts.
+Contract is uniquely identified by its `contract_id`, which is computed as a single SHA256-hash of the serialized commitment fields from both contract header and body.
 
-Many different *kinds* (or *blueprints*) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. **Every contract kind has a specific 1-byte-long unique identifier**, which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time. Every blueprint also has an independent versioning system, in order to make the entire project even more "modular" (See [issue #23 on GitHub](https://github.com/rgb-org/spec/issues/23)).
-
-### Re-issuance
-
-Since the total supply of an asset is hard-coded into the contract itself, there's no way to change it at a later time. The only way to issue more token, thus inflating the supply, is by doing what's called a **"re-issuance"**, which basically means issuing another contract of type `0x03` (reissuance) linked to the previous one by committing it to `reissuance_utxo`. This feature can be disable by setting `reissuance_enabled` to `0`. 
-
-### Proof-of-burn
-
-Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
-
-To do this, token owner have to send them to the `burn_address`, specified in the contract. The proof showing the transfer should then be published by the asset issuer itself [**extend**] to *prove* that the supply has been deflated.
+Many different *kinds* (or **blueprints**) of contracts exist, allowing the user to choose the rules that will define how the asset is issued and, later, transferred. Every contract kind has a specific 1-byte-long unique identifier for the used blueprint type (`blueprint_type` field), which is serialized and committed to during the deployment phase, to make sure that its behaviour cannot be changed at a later time.
 
 ### Entity Structure
 
-Contracts are ideally made by two parts:
+Contracts are made of two parts:
 
 * Header - the area that contains all the fields common among every contract kind
 * Body - the area that contains blueprint-specific fields
+
+Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utility function, optimising the speed of data retrieval from Bitcoin Core node. Prunable fields are optional, they MAY be transferred upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
 
 #### Header
 
 The header contains the following fields:
 
-* `title`: Title of the asset contract
-* `description`: Description of the asset contract
-* `contract_url`: Unique url for the publication of the contract and the light-anchors
-* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it
-* `network`: The Bitcoin network in use (mainnet, testnet)
-* `total_supply`: Total supply in satoshi (1e-8)
-* `min_amount`: Minimum amount of tokens that can be transferred together, like a *dust limit*
-* `max_hops`: Maximum number of "hops" before the reissuance (can be set to `0xFFFFFFFF` to disable this feature)
-* `reissuance_enabled`: Whether the re-issuance feature is enabled or not
-* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
-* `burn_address`: The address to send tokens to in order to burn them
-* `commitment_scheme`: The commitment scheme used by this contract
-* `version`: 16-bit number representing version of the blueprint used
+* Commitment fields:
+    * `version`: [version](#versioning) of the contract, 16-bit integer.
+    * `blueprint_type`: 16-bit number representing version of the blueprint used
+    * `title`: title of the asset contract
+    * `description`: (optional) description of the asset contract
+    * `contract_url`: (optional) unique url for the publication of the contract and the light-anchors
+    * `network`: Bitcoin network in use (mainnet, testnet)
+    * `issued_supply`: total issued supply, using the smallest indivisible available unit, 64-bit unsigned integer
+    * `max_supply`: (optional) puts a limit to the total amount of assets that may be issued by subsequent inflation contracts. For contracts with absent `inflation_txout` this field MUST BE omitted. For other cases, the absence of the field implies no upper cap to the asset inflation.
+    * `dust_limit`: minimum amount of assets that can be transferred together, like a *dust limit* in Lightning Network, 64-bit unsigned integer
+    * `issuance_txout`: [RgbOutPoint](#asset-assignments) which will held the issued assets
+    * `inflation_txout`: (optional) [RgbOutPoint](#asset-assignments) which has to be spent in order to deploy a contract increasing issued asset supply (see [secondary issuance](#secondary-issuance)). Absence of the field means that additional issuance is not enabled.
+    * `upgrade_txout`: (optional) [RgbOutPoint](#asset-assignments) which has to be spent in order to deploy an asset upgrade contract (see [upgrade contract](#upgrade) for the details). If the value is absent, then it defaults to the output committing to the contract deployment.
+    * `pruning_txout`: [RgbOutPoint](#asset-assignments) which has to be spent in order to deploy a contract pruning the proofs history (see [pruning contract](#pruning) for the details).
+    * `deployment_txout`: UTXO which will be spent in the transaction which will have a contract commitment
+    * `signature`: (optional) signature of the committed part of the contract (without the signature field itself).
+* Non-prunable non-commitment fields:
+    * `original_pubkey`: provides the original public key before the tweak procedure which is needed to verify the contract commitment. Original public key is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
 
-### Blueprints and versioning
+NB: Since with bitcoin network protocol-style serialization, used by RGB, we can't have optionals, the optional header fields should be serialized as a zero-length strings, which upon deserialization must be converted into `nil/NULL`
 
-#### Simple issuance: `0x01`
+The contract issuer MAY sign the contract (by filling the appropriate `signature` field). It is the right of the issuer to choose which key should be used for contract signing: it can be the same key which is used for an associated commitment output, a key associated with the DNS certificate of the issuer domain, or any other.
 
-**Version `0x0008`**
+### Blueprint types
 
-This blueprint allows to mint `total_supply` tokens and immediately send them to `owner_utxo`.
+These blueprints cover basic contracts for fungible assets. New blueprint types can be added later; addition of new blueprint types will require the increase of minor version of the deployment contract.
 
-The additional fields in the body are:
+#### Initial issuance
 
-* `owner_utxo`: the UTXO which will receive all the tokens
+This blueprint allows to mint `issued_supply` tokens and immediately send them to `issuance_txout`.
 
-#### Crowdsale: `0x02`
+The `blueprint_type` for initial issuance is `0x01`. There are no additional fields in its body.
 
-**Version `0x0008`**
+#### Secondary issuance
 
-This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `total_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
+Since the total supply of an asset is hard-coded into the contract itself, there's no way to change it at a later time. The only way to issue more token, thus inflating the supply, is by doing what's called a **secondary issuance**, which basically means issuing another contract of type `0x02` linked to the previous one by committing it to the `inflation_utxo`. This feature can be disable by setting `inflation_utxo` to `0`. 
 
-The additional fields in the body are:
+This contract MUST be deployed by spending the commitment output of the original issuing contract. The major version of the inflation contract MUST match the original contract's one. 
 
-* `deposit_address`: the address to send Bitcoins to in order to buy tokens
-* `price_sat`: the price in satoshi for a single token
-* `from_block`: when the crowdsale starts
-* `to_block`: when the crowdsale ends
-
-#### Re-issuance: `0x03`
-
-**Version `0x0008`**
-
-This blueprint allows an asset issuer to re-issue tokens by inflating the supply. This is allowed only if the original contract had `reissuance_enabled` != `0`. 
-
-This contract MUST be issued using the `reissuance_utxo` and its version MUST match the original contract's one. 
-
-The following fields in its header MUST be set to `0` in order to disable them:
+The following fields in its header MUST be set to `0` or zero-length string in order to disable the (i.e. their values will be inherited from the original issuance contract):
 
 * `title`
 * `description`
 * `network`
 * `min_amount`
-* `max_hops`
-* `burn_address`
-* `commitment_scheme`
+* `deployment_txout`
 
-The following fields MUST be filled with "real" values:
+The following fields MUST be filled:
 
 * `contract_url`: Unique url for the publication of the contract and the light-anchors
-* `issuance_utxo`: The UTXO which will be spent in a transaction containing a  commitment to this contract to "deploy" it (must match the original contract's `reissuance_utxo`)
-* `total_supply`: Additional supply in satoshi (1e-8)
-* `reissuance_enabled`: Whether the re-issuance feature is enabled or not
-* `reissuance_utxo`: (optional) UTXO which have to be spent to reissue tokens
-* `version`: 16-bit number representing version of the blueprint used
+* `issued_supply`: Additional supply in satoshi (1e-8)
+* `inflation_txout`: (optional) [RgbOutPoint](#asset-assignments) which has to be spent in order to deploy a contract increasing issued asset supply (additional issuance). Absence of the field means that additional issuance is not enabled.
+* `migration_txout`: (optional) [RgbOutPoint](#asset-assignments) which has to be spent in order to deploy an asset migration contract. If the value is absent, then it defaults to the output committing to the contract deployment.
+* `blueprint_type`: 16-bit number representing version of the blueprint used (i.e. `0x03`)
 
-There are no additional fields in its body.
+The `blueprint_type` for initial issuance is `0x02`. There are no additional fields in its body.
+
+#### Upgrade
+
+This allows to update the major contract version in order to migrate the assets to the new backward-incompatible proof formats (i.e. changing the major version number, see [Versioning](#versioning) for details). Deployment of this contract by the party controlling `upgrade_txout` from the original issuance contract signifies the network that the issuer has accepted the security risks associated with the upgrade to the new major proofs version and recommends the upgrade to all asset owners.
+
+NB: While it might not be required to utilize single use seal procedure requiring some additional input to be added to some bitcoin transaction, at the present time we have not come with some other secure option for the upgrade procedure. This can be a matter of the research efforts for the future.
+
+The following fields in the contract header MUST BE set to `0` or zero-length string in order to disable them (i.e. their values will be inherited from the original issuance contract):
+
+* `title`
+* `description`
+* `contract_url`
+* `network`
+* `dust_limit`
+* `deployment_txout`
+* `issued_supply`
+* `max_supply`
+* `inflation_txout`
+
+The contract MUST define a new value for the `upgrade_txout` and `pruning_txout` 
+
+The `blueprint_type` for the upgrade contract is `0x03`.
+
+#### Pruning
+
+When the proof's history becomes to large, the issuer (more precisely, the party controlling `pruning_txout` from the initial, secondary issuance and upgrade contracts) MAY deploy the pruning contract into the transaction spending `pruning_txout` field of the previous issuance/upgrade/pruning contract, plus all inputs for the assets which proofs history has to be pruned.
+
+The following fields in the contract header MUST BE set to `0` or zero-length string in order to disable them (i.e. their values will be inherited from the original issuance contract):
+
+* `title`
+* `description`
+* `contract_url`
+* `network`
+* `dust_limit`
+* `deployment_txout`
+* `issued_supply`
+* `max_supply`
+* `inflation_txout`
+* `upgrade_txout`
+
+The contract MUST define a new value for the `issuance_txout` and `pruning_txout` fields. fields. The `` will define where the new (prunned) history for the proofs must be started.
+
+The `blueprint_type` for the upgrade contract is `0x03`.
+
+The issuer MUST keep the complete history of the proofs before the pruning and MUST provide it to all interested clients upon their request.
+
+#### Crowdsale
+
+This blueprint allows to set-up a crowdsale, to sell tokens at a specified price up to the `issued_supply`. This contract actually creates two different assets with different `assets_id`s. Together with the "normal" token, a new "change" token is issued, to "refund" users who either send some Bitcoins too early or too late and will miss out on the crowdsale. Change tokens have a fixed 1-to-1-satoshi rate in the issuing phase, and are intended to maintain the same rate in the redeeming phase.
+
+The additional fields in the body are:
+
+* `deposit_address`: the address to send Bitcoins to in order to buy tokens
+* `price_sat`: the price (in satoshis) for a single token
+* `from_block`: when the crowdsale starts
+* `to_block`: when the crowdsale ends
+
+These fields are commitment fields.
+
+The `blueprint_type` for the upgrade contract is `0x10`.
 
 ## Proofs
 
@@ -167,107 +260,74 @@ Proofs, as the name implies, are entities that *prove* that some requirements ar
 
 Like contracts, proofs have an header and a body, where the common and "special" fields are stored respectively.
 
+Both header and body contain fields to which the contract is cryptographically committed ("commitment fields") – and fields that do not participate in the generation of the cryptographic commitment. The latter can be either permanent or prunable; the permanent fields are required for the contract verification process and need to be transferred to other peers. Prunable fields are computable fields, they serve utility function, optimising the speed of data retrieval from Bitcoin Core node. Prunable fields are optional, they MAY be transferred upon request from one peer to other (alike witness data in bitcoin blocks), however peers are MAY NOT keep these data and can decline the requests for providing them from other peers.
+
+Proof is uniquely identified by its `proof_id`, which is computed as a single SHA256-hash of the serialized commitment fields.
+
 ### Transfer proofs
 
-Every RGB on-chain transaction will have a corresponding **"proof"**, where the payer encrypts, using the payee’s dark-tag, the following information in a structured way:
+Every RGB on-chain transaction will have a corresponding **proof**, where the payer stores the following information in a structured way:
 
-* the entire chain of proofs received up to the issuance contract;
-* a list of triplets made with:
-	* color of the token being transacted
-	* amount being transacted
-	* either the hash of an UTXO in the form (TX_hash, index) to send an *UTXO-Based* transaction or an index which will bind those tokens to the corresponding output of the transaction *spending* the colored UTXO.
-* an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+* Commitment fields:
+    * `version`: [version](#versioning) of the proof, 16-bit integer.
+    * `assignments`: an array, where elements are subarrays containing list of transfers for each of the assets. Assets are ordered according to their order in the parent proofs and contracts. For instance, if the first parent proof transacts assets C and then B, the second A and B, then the order of asset subarrays will be "C, B, A". Each subarray for a given asset contains:
+        * amount being transacted
+        * [RgbOutPoint](#asset-assignments) for the asset: a UTXO for *UTXO-Based* transfers – or an index which will assign the asset to the corresponding output of the transaction *spending* the input UTXO.
+    * `metadata`: an optional free field to pass over transaction meta-data that could be conditionally used by the asset contract to manipulate the transaction meaning (generally for the "meta-script" contract blueprint);
+* Non-commitment non-prunable fields:
+    * `original_pubkey`: (optional) If present, signifies P2C commitment scheme and provides the original public key before the tweak procedure which is needed to verify the proof commitment. Original pubkey is not a part of the commitment fields since it was explicitly included into the commitment during pay-to-contract public key tweaking procedure.
+* Prunable fields:
+    * `parents`: a list containing parent `proof_id`s (and/or `contract_id`s when the proof spends issuing output of some contract, upgrades to the new contract version or prunes previous proof history);
+    * `commitment_txid`: transaction this proof is committed to. This is required field for the proofs assigning assets to a yet-unspent outputs (i.e. proofs with no downstream proofs). For historical proofs this is a redundant information, since asset spending transaction is the transaction containing the proof commitment. However, this information can be still kept in order to increase the speed of requests to Bitcoin Core.
 
-In order to help a safe and easy management of the additional data required by this feature, the dark-tag can be derived from the BIP32 derivation key that the payee is using to generate the receiving address.
+Notes on output structure:
+* Zero length for the list of outputs is used to indicate [proof of burn](#proof-of-burn)
+* The amount field in the last transfer tuple for each asset type MUST BE omitted and MUST BE automatically deduced as `sum(assets_amounts_in_txins) - sum(assigned_amounts)` for the given asset type. This allows do avoid situations where `sum(assets_amounts_in_txins) > sum(assigned_amounts)` and  saves storage space.
 
-**[note on safety of mixing Bitcoin and RGB addresses]**
+The proof MUST be considered invalid as a whole if `sum(assets_amounts_in_txins) < sum(assigned_amounts)` for any of the assets transferred by the proof.
 
-This feature should enhance the anonymity set of asset users, making chain analysis techniques almost as difficult as ones on “plain bitcoin” transactions. The leakage of a specific transaction dark-tag gives away the path from the issuing to the transaction itself, and of the “sibling” transactions, but it preserves uncertainty about other branches.
+### Asset assignments
 
-### Special proofs
+RGB allows the sender of a commitment transaction to transfer the ownership of any asset in two slightly different ways:
 
-Every contract blueprint needs a special "adaptor" proofs, that *proves* that the payer can fulfill the requirements specified by the contract itself.
+* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to assign the asset he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more).
+* **Vout-Based** if the receiver prefers to assign assets to an output of the transaction spending previous asset and containing output commited to the new proof;
 
-## Structure
+`RgbOutPoint` is an entity that encodes the receiver of some assets. It can either be bitcoin `OutPoint` entity when used in an UTXO-based transaction, to represent the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an vout-based transaction.
 
-### Address-Based vs UTXO-Based
+When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for vout-based ones.
 
-RGB allows the sender of a colored transaction to transfer the ownership of any asset in two slightly different ways:
+### Version update specifics
 
-* **UTXO-Based** if the receiver already owns one ore more UTXO(s) and would like to "bind" its new tokens he is about to receive to this/those UTXO(s). This allows the sender to spend the nominal Bitcoin value of the UTXO which was previously bound to the tokens however he wants (send them back to himself, make an on-chain payment, open a Lightning channel or more). The UTXO is serialized as `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` in order to increase the privacy of the receiver.
-* **Address-Based** if the receiver prefers to receive the colored UTXO itself;
+The proofs MUST stick to the highest major version provided by the parent proofs (proofs which associated assets are spent). If the issuers of some of the assets under the proof have not adopted (according to the [algotithm](#upgrade)) the highest major version which is adopted by the other assets from the proof, these assets MUST be transferred by a separate proof.
 
-### RgbOutPoint
+A special attention must be paid to the major upgrades changing the existing commitment schemes. These updates, in order to address the associated risk of double-spent attack, MUST follow very specific procedure:
+1. The asset issuer must announce that he supports the update by committing to an appropriate [upgrade contract](#upgrade).
+2. All the asset owners which would like to upgrade the asset will be publishing the first proof with the updated major version. This proof MUST use and MUST BE validated with the commitment scheme rules from the *previous* version.
+3. All the following proof after this first proof adapting the new major version MUST adapt and MUST BE validated with the new commitment scheme as defined by the new version specification.
+4. There is no possibility to downgrade the major version of the proofs that has adopted a commitment scheme upgrade.
 
-`RgbOutPoint` is an entity that encodes the receiver of some tokens. It can either be a `Sha256d` entity when used in an UTXO-based transaction, to represent the double SHA256 of the pair (TX_HASH, OUTPUT_INDEX), or a 16-bit unsigned integer when used in an address-based transaction.
+### Multi-signature asset ownership
 
-When serialized, one more byte is added to encode which of the two branches is being encoded. Its value must be `0x01` for UTXO-based transactions and `0x02` for address-based ones.
+Multi-signature asset ownership is working in the same way it works for bitcoin: transfer proofs MAY assign RGB assets to a `P2SH` or `P2WSH` address containing multi-signature locking script, while being committed with either Pay-to-contract or OP_RETURN commitment scheme to some other output within the same or other transaction.
 
-For example, the byte sequence:
+Such assets can be spent with a new transfer proof only under the same circumstances as satoshis under this output: if the unlocking script will satisfy the signing conditions of the locking script.
 
-```
-01 49CAFDBC 3E9133A7 5B411A3A 6D705DCA 2E9565B6 60123B65 35BABB75 67C28F02
-```
+### Proof-of-burn
 
-is decoded as:
+Token owners have the ability to *burn* tokens in order to claim or redeem any of the rights associated with their tokens.
 
-* `0x01` = UTXO-based transaction
-* `...` = SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)
+To do this, token owner have to issue a special form of the proof ("proof of burn"), having zero assignments, and commit it with either Pay-to-contract or OR_RETURN scheme. The proof SHOULD then be published by the asset issuer itself to prove that the supply has been deflated.
 
-## Exemplified Process Description
-The following Process Description assumes:
+### Validation workflow
 
-* one-2-one transfers after the issuance (many-to-many transfers are possible);
-* single-asset issuance and transfers (multi-asset issuance and transfers are possible);
-### Basic Asset Issuance
+If Alice wats to send Bob some assets and Bob wants to pay Alice for the assets some bitcoins,
+1. Alice provides Bob with the full proof history up to the issuance contract with a new draft proof
+2. Bob validates the history and creates a new tx and a new proof, where tx 
+   * spends some outputs from the last proof provided by Alice, 
+   * contains a commitment to the new proof, and 
+   * the proof assigns assets to some outputs of the new transaction - or some other(s) UTXO(s) owned by Bob
+3. Bob provides Alice with both unpublished tx and the proof
+4. If Alice ok she signs the tx and publishes it to bitcoin network
 
-1. The issuer prepares the public contract for the asset issuing, with the following structure:
-
-```c
-{
-	"kind": 0x01 // The kind of contract we are creating, in this case a generic issuance
-	"version": 0x0008 // Version of this contract kind to use,
-	"title": <String>, // Title of the asset contract
-	"description": <String>, // Description of possible redeeming actions and non-script conditions
-	"issuance_utxo": <String>, // The UTXO which will be spent with a commitment to this contract,
-	"contract_url": <String>, // Unique url for the publication of the contract and the light-anchors
-	"total_supply": <Integer>, // Total supply in satoshi (1e-8)
-	"max_hops": <Integer>, // Maximum amount of onchain transfers that can be performed on the asset before reissuance
-	"min_amount": <Integer>, // Minimum amount of colored satoshis that can be transferred together,
-	"network": "BITCOIN", // The network in use
-	"reissuance_enabled": 0, // Disable reissuance
-	"burn_address": <Address>, // The address used to burn tokens
-	"commitment_scheme": "OP_RETURN", // The commitment scheme used by this asset
-	
-
-	"owner_utxo": <String>, // The UTXO which will receive all the issued token. This is a contract-specific field.
-}
-```
-
-2. The issuer spends the `issuance_utxo` with a commitment to this contract (using an `OP_RETURN`) and publishes the contract. *`total_supply`* tokens will be created and sent to `owner_utxo`.
-
-### On-chain Asset Transfer
-1. The payee can either chose one of its UTXO or generates in his wallet a receiving address as per BIP32 standard, together with 30 bytes of entropy, which will serve as dark-tag for this transfer.
-2. The payee transmits the UTXO or the address, the dark-tag and a list of storage servers he wishes to use to the payer.
-3. The payer composes (eventually performing a coin-selection process from several unspent colored outputs), signs and broadcasts with his wallet a transaction with the following structure (the order of inputs and output is irrelevant):
-  * Inputs
-     * Colored Input 1: valid colored (entirely or partially) UTXO to spend
-     * Colored Input 2: (optional)
-  * Outputs
-     * Colored Output 1: address of the Nth receiver (if performing an *Address-Based* transaction)
-     * Colored Output 2: (optional) another address of the payer for the colored (up to capacity) and non-colored change
-
-The payer also produces a new transfer proof containing:
-
-* A list of triplets made with:
-	* color of the token being transacted;
-	* amount being transacted;
-	* either the hash of an UTXO in the form `SHA256D(TX_HASH || OUTPUT_INDEX_AS_U32)` to send an *UTXO-Based* tx or the index of the output sent to the receiver to send an *Address-Based* tx;
-* Optional meta-script-related meta-data;
-
-The proof is hashed and a commitment to the hash is included in the transaction, in this case using an `OP_RETURN`.
-
-This proof is also symmetrically encrypted with the dark-tag using AES 256 together with the entire chain of proofs up to the issuance of the token and uploaded to the storage server(s) selected by the payee.
-
-### Color Addition
-[expand]
+This gives necessary atomicity and escrow guarantees.
