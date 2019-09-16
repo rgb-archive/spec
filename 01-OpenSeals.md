@@ -762,7 +762,7 @@ Field            | Type               | Description
 ```yaml
 ver: 1
 format: root
-schema: sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
+schema: sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxs0wtqdf
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
 type_name: primary_issue
@@ -786,92 +786,94 @@ pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
 ```
 00000000  81 2f 79 45 ba 87 14 6b  dc cb 7a be 25 3a 26 7f  |./yE...k..z.%:&.|
 00000010  67 14 16 f2 60 53 38 6a  13 62 b4 23 12 25 23 e8  |g...`S8j.b.#.%#.|
-00000020  8d 02 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |..W....b..F..$@>|
+00000020  8d 82 57 00 bd cc fc 62  09 a5 46 0d c1 24 40 3e  |..W....b..F..$@>|
 00000030  ed 6c 3f 5b a5 8d a0 12  3b 39 2a b0 b1 fa 23 30  |.l?[....;9*...#0|
-00000040  6f 27 04 00 00 57 00 bd  cc fc 62 09 a5 46 0d c1  |o'...W....b..F..|
-00000050  24 40 3e ed 6c 3f 5b a5  8d a0 12 3b 39 2a b0 b1  |$@>.l?[....;9*..|
-00000060  fa 23 30 6f 27 7f 01 57  00 bd cc fc 62 09 a5 46  |.#0o'..W....b..F|
-00000070  0d c1 24 40 3e ed 6c 3f  5b a5 8d a0 12 3b 39 2a  |..$@>.l?[....;9*|
-00000080  b0 b1 fa 23 30 6f 27 7f  03 57 00 bd cc fc 62 09  |...#0o'..W....b.|
-00000090  a5 46 0d c1 24 40 3e ed  6c 3f 5b a5 8d a0 12 3b  |.F..$@>.l?[....;|
-000000a0  39 2a b0 b1 fa 23 30 6f  27 7f 02 57 00 bd cc fc  |9*...#0o'..W....|
-000000b0  62 09 a5 46 0d c1 24 40  3e ed 6c 3f 5b a5 8d a0  |b..F..$@>.l?[...|
-000000c0  12 3b 39 2a b0 b1 fa 23  30 6f 27 ff 05 fe 40 42  |.;9*...#0o'...@B|
-000000d0  0f 00 24 03 50 4c 53 1a  50 72 69 76 61 74 65 20  |..$.PLS.Private |
-000000e0  43 6f 6d 70 61 6e 79 20  4c 74 64 20 53 68 61 72  |Company Ltd Shar|
-000000f0  65 73 00 00 ff 01 00 02  62 b0 6c b2 05 c3 de 54  |es......b.l....T|
-00000100  71 7e 0b c0 ea b2 08 8b  0e db 9b 63 fa b4 99 f6  |q~.........c....|
-00000110  ca c8 75 48 ca 20 5b e1                           |..uH. [.|
+00000040  6f 27 04 00 ff 80 57 00  bd cc fc 62 09 a5 46 0d  |o'....W....b..F.|
+00000050  c1 24 40 3e ed 6c 3f 5b  a5 8d a0 12 3b 39 2a b0  |.$@>.l?[....;9*.|
+00000060  b1 fa 23 30 6f 27 7f 81  57 00 bd cc fc 62 09 a5  |..#0o'..W....b..|
+00000070  46 0d c1 24 40 3e ed 6c  3f 5b a5 8d a0 12 3b 39  |F..$@>.l?[....;9|
+00000080  2a b0 b1 fa 23 30 6f 27  7f 83 57 00 bd cc fc 62  |*...#0o'..W....b|
+00000090  09 a5 46 0d c1 24 40 3e  ed 6c 3f 5b a5 8d a0 12  |..F..$@>.l?[....|
+000000a0  3b 39 2a b0 b1 fa 23 30  6f 27 7f 82 57 00 bd cc  |;9*...#0o'..W...|
+000000b0  fc 62 09 a5 46 0d c1 24  40 3e ed 6c 3f 5b a5 8d  |.b..F..$@>.l?[..|
+000000c0  a0 12 3b 39 2a b0 b1 fa  23 30 6f 27 ff 05 fe 40  |..;9*...#0o'...@|
+000000d0  42 0f 00 24 03 50 4c 53  1a 50 72 69 76 61 74 65  |B..$.PLS.Private|
+000000e0  20 43 6f 6d 70 61 6e 79  20 4c 74 64 20 53 68 61  | Company Ltd Sha|
+000000f0  72 65 73 00 00 ff 01 00  02 62 b0 6c b2 05 c3 de  |res......b.l....|
+00000100  54 71 7e 0b c0 ea b2 08  8b 0e db 9b 63 fa b4 99  |Tq~.........c...|
+00000110  f6 ca c8 75 48 ca 20 5b  e1                       |...uH. [.|
 ```
 
 ```
 0000000 81                                                  Flag-prefixed version
 
 0000000    2f 79 45 ba 87 14 6b dc cb 7a be 25 3a 26 7f     Schema ID
-0000010 67 14 16 f2 60 53 38 6a 13 62 b4 23 12 25 23 e8     sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
-0000020 8d 
+0000010 67 14 16 f2 60 53 38 6a 13 62 b4 23 12 25 23 e8     sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxs0wtqdf
+0000020 8d
 
-0000020    02                                               Network identifier (bitcoin testnet)
+0000020    82                                               Network identifier (bitcoin testnet) - flag: true (root proof)
 
 0000020       57 00 bd cc fc 62 09 a5 46 0d c1 24 40 3e     Contract-deployment txout
 0000030 ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1 fa 23 30     5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
-0000040 6f 27 04 
+0000040 6f 27 04
 
 0000040          00                                         Proof type code
 
-0000040             00 57 00 bd cc fc 62 09 a5 46 0d c1     Seal #1 short outpoint
-0000050 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0 b1
-0000060 fa 23 30 6f 27 
+0000040             ff                                      Byte signalling no unseals
 
-0000060                7f                                   Special byte signalling seal type switch
+0000040                80 57 00 bd cc fc 62 09 a5 46 0d     Seal #1 short outpoint - flag: true (txid follows)
+0000050 c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a b0
+0000060 b1 fa 23 30 6f 27
 
-0000060                   01 57 00 bd cc fc 62 09 a5 46     Seal #2 short outpoint
-0000070 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39 2a
-0000080 b0 b1 fa 23 30 6f 27
+0000060                   7f                                Special byte signalling seal type switch
 
-0000080                      7f                             Special byte signalling seal type switch
+0000060                      81 57 00 bd cc fc 62 09 a5     Seal #2 short outpoint - flag: true (txid follows)
+0000070 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b 39
+0000080 2a b0 b1 fa 23 30 6f 27
 
-0000080                         03 57 00 bd cc fc 62 09      Seal #3 short outpoint
-0000090 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12 3b
-00000a0 39 2a b0 b1 fa 23 30 6f 27 
+0000080                         7f                          Special byte signalling seal type switch
 
-00000a0                            7f                       Special byte signalling seal type switch
+0000080                            83 57 00 bd cc fc 62     Seal #3 short outpoint - flag: true (txid follows)
+0000090 09 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0 12
+00000a0 3b 39 2a b0 b1 fa 23 30 6f 27
 
-00000a0                               02 57 00 bd cc fc     Seal #4 short outpoint
-00000b0 62 09 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d a0
-00000c0 12 3b 39 2a b0 b1 fa 23 30 6f 27 
+00000a0                               7f                    Special byte signalling seal type switch
 
-00000c0                                  ff                 Special byte signalling end of seal sequence data
+00000a0                                  82 57 00 bd cc     Seal #4 short outpoint - flag: true (txid follows)
+00000b0 fc 62 09 a5 46 0d c1 24 40 3e ed 6c 3f 5b a5 8d
+00000c0 a0 12 3b 39 2a b0 b1 fa 23 30 6f 27
 
-00000c0                                     05              Length of sealed state data
+00000c0                                     ff              Special byte signalling end of seal sequence data
 
-00000c0                                        fe 40 42     Sealed state
-00000d0 0f 00
+00000c0                                        05           Length of sealed state data
 
-00000d0       23                                            Length of metadata
+00000c0                                           fe 40     Sealed state
+00000d0 42 0f 00
 
-00000d0          03 50 4c 53                                Field #1: String "PLS"
+00000d0          24                                         Length of metadata
 
-00000d0                      1a 50 72 69 76 61 74 65 20     Field #2: String "Private Company Ltd Shares"
-00000e0 43 6f 6d 70 61 6e 79 20 4c 74 64 20 53 68 61 72
-00000f0 65 73
+00000d0             03 50 4c 53                             Field #1: String "PLS"
 
-00000f0       00                                            Field #3: No value for `description`
+00000d0                         1a 50 72 69 76 61 74 65     Field #2: String "Private Company Ltd Shares"
+00000e0 20 43 6f 6d 70 61 6e 79 20 4c 74 64 20 53 68 61
+00000f0 72 65 73
 
-00000f0          00                                         Field #4: No value for `url`
+00000f0          00                                         Field #3: No value for `description`
 
-00000f0             ff                                      Field #5: No value for `max_supply`
+00000f0             00                                      Field #4: No value for `url`
 
-00000f0                01                                   Field #6: fvi 01 for `dust_limit`
+00000f0                ff                                   Field #5: No value for `max_supply`
 
-00000f0                   00                                Field #7: No value for `singnature`
+00000f0                   01                                Field #6: fvi 01 for `dust_limit`
 
-00000f0                      02 62 b0 6c b2 05 c3 de 54     Original public key
-0000100 71 7e 0b c0 ea b2 08 8b 0e db 9b 63 fa b4 99 f6
-0000110 ca c8 75 48 ca 20 5b e1                        
+00000f0                      00                             Field #7: No value for `singnature`
+
+00000f0                         02 62 b0 6c b2 05 c3 de     Original public key
+0000100 54 71 7e 0b c0 ea b2 08 8b 0e db 9b 63 fa b4 99
+0000110 f6 ca c8 75 48 ca 20 5b e1
 ```
 
-The hash of the proof must be `pf1pad7nmys33tpudflpaq84vp8npruv8xewhkzk2nr9jylc8m5v8k4s96fmkd`
+The bech32 encoded SHA256 hash of the encoded proof must be `pf1zyl52dsv8t6m33lgecgpfexf9n93jz3d380dr7a2ehpc9tl9gx2seqzqua`
 
 ### Schema test vector
 
