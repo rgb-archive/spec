@@ -586,6 +586,8 @@ If the schema is known, `0x7F` separating byte is used to increment *seal type c
 sample script above), and associate each of the read seals with specific seal type from the schema: this number
 corresponds to the seal type with the same index number withing schema data.
 
+Both `unseals` and `seals` must be serialised separately, in that order, so that the seal type for each unseal may be distinguished independently from each seal. In the case of root proofs, where no unseals are present, a single `0xFF` byte should be encoded, which terminates the decoder, returning an empty array.
+
 ##### State serialization
 
 State is serialized in form of variable-length byte array starting with `VarInt` length value. State can be only parsed
