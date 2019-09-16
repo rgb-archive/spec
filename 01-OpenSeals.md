@@ -762,7 +762,7 @@ Field            | Type               | Description
 ```yaml
 ver: 1
 format: root
-schema: sm1p9au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
+schema: sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
 network: bitcoin:testnet
 root: 5700bdccfc6209a5460dc124403eed6c3f5ba58da0123b392ab0b1fa23306f27:4
 type_name: primary_issue
@@ -808,7 +808,7 @@ pubkey: 0262b06cb205c3de54717e0bc0eab2088b0edb9b63fab499f6cac87548ca205be1
 0000000 81                                                  Flag-prefixed version
 
 0000000    2f 79 45 ba 87 14 6b dc cb 7a be 25 3a 26 7f     Schema ID
-0000010 67 14 16 f2 60 53 38 6a 13 62 b4 23 12 25 23 e8     sm1p9au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
+0000010 67 14 16 f2 60 53 38 6a 13 62 b4 23 12 25 23 e8     sm19au5tw58z34aejm6hcjn5fnlvu2pdunq2vux5ymzks33yffrazxskfnvz5
 0000020 8d 
 
 0000020    02                                               Network identifier (bitcoin testnet)
