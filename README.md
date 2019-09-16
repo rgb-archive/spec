@@ -3,6 +3,11 @@
 The RGB Project is a completely free, open-source, non-profit and community-oriented effort aimed at the development of 
 standards and best practices to issue, transmit and store digital assets issued in LNP/BP networks.
 
+This is a new, re-designed version of the protocol build on top of more generic single-use seals framework (OpenSeals).
+For the previous versions of the protocol please check:
+* [old-master](https://github.com/rgb-org/spec/tree/old-master) branch – original specification created in 2018
+* [rgb-v0.5](https://github.com/rgb-org/spec/tree/rgb-0.5) branch – update on the original specification
+
 Basic information about the project can be provided by the developers in the [Telegram Group](https://t.me/rgbtelegram).
 
 
