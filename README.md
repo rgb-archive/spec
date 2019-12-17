@@ -5,7 +5,7 @@ standards and best practices to issue, transmit and store digital assets issued 
 
 Basic information about the project can be provided by the developers in the [RGB Telegram Group](https://t.me/rgbtelegram).
 
-RGB is a based on a stack of LNP/BP standards, defined and being developed in the https://github.com/lnp-bp/lnpbps
+RGB is a based on a suite of LNP/BP standards, defined and being developed in the https://github.com/lnp-bp/lnpbps
 repository. The current version of the specification is outdated; it will be replaced with the new one once the
 required set of the underlying standards is completed.
 
@@ -29,7 +29,7 @@ branches of the current repo:
 
 # RGB protocol old specification, v0.9
 1. [OpenSeals](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
-   RGB to issue and account issued assets on top of LNP/BP stack.
+   RGB to issue and account issued assets on top of LNP/BP suite.
 2. [LightningNetwork](02-LightningNetwork.md) – implementation of OpenSeals for Lightning Network channels
 3. [Wire protocol](03-Wire.md) – wire protocol for OpenSeals P2P node communications
 4. [RGB](04-RGB.md) – digital asset issuing and management based on OpenSeals framework
