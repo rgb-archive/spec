@@ -3,24 +3,24 @@
 The RGB Project is a completely free, open-source, non-profit and community-oriented effort aimed at the development of 
 standards and best practices to issue, transmit and store digital assets issued in LNP/BP networks.
 
-Basic information about the project can be provided by the developers in the [Telegram Group](https://t.me/rgbtelegram).
+Basic information about the project can be provided by the developers in the [RGB Telegram Group](https://t.me/rgbtelegram).
 
-RGB is a based on a stack of LNP/BP standards, defined and being developed under https://github.com/lnp-bp/lnpbps
-repository. The current version of the specification is oudated; it will be replaced with the new one once the
-required set of the underlying standards will be completed.
+RGB is a based on a stack of LNP/BP standards, defined and being developed in the https://github.com/lnp-bp/lnpbps
+repository. The current version of the specification is outdated; it will be replaced with the new one once the
+required set of the underlying standards is completed.
 
 The present parts of the RGB project under development include:
 * [LNPBPS](https://github.com/lnp-bp/lnpbps): aforementioned set of core standards
-* [rust-lnpbp](https://github.com/lnp-bp/lnpbps): core LNPBP library implementing LNPBPS written in rust
+* [rust-lnpbp](https://github.com/lnp-bp/lnpbps): core LNPBP library implementing LNPBPS written in Rust
 * [lbx](https://github.com/lnp-bp/lbx): command-line tool for performing basic operations (commitments etc)
-  defined in LNP/BP standards; based on rust-lnpbp library
-* [rust-rgb](https://github.com/rgb-org/rust-rgb): library implementing asset-specific functionaity on top
+  defined in LNP/BP standards; based on the rust-lnpbp library
+* [rust-rgb](https://github.com/rgb-org/rust-rgb): library implementing asset-specific functionality on top
   of generic client-validated state paradigm
 * [Kaleidoscope](https://github.com/rgb-org/kaleidoscope): command-line wallet for Bitcoin and RGB protocols
 * [Bifrost](https://github.com/rgb-org/Bifrost): server for storing client-validated data blobs. On hold.
 
 In this repository  you can browse the most recent version under this develop branch, which existed before it was 
-spitted into an independing layered LNP/BP standards. You can also check a history of RGB development in the 
+split into the impending layered LNP/BP standards. You can also check a history of RGB development in the 
 branches of the current repo:
 * [rgb-v0.4](https://github.com/rgb-org/spec/tree/old-master) branch – original specification created in 2018
   by Alekos Fillini, Giacomo Zucco and contributors
