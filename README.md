@@ -9,16 +9,25 @@ RGB is a based on a stack of LNP/BP standards, defined and being developed under
 repository. The current version of the specification is oudated; it will be replaced with the new one once the
 required set of the underlying standards will be completed.
 
-Right now you can brows the most recent version under this develop branch, which existed before it was spitted
-into an independing layered LNP/BP standards. You can also check a history of RGB development in the branches of
-the current repo:
+The present parts of the RGB project under development include:
+* [LNPBPS](https://github.com/lnp-bp/lnpbps): aforementioned set of core standards
+* [rust-lnpbp](https://github.com/lnp-bp/lnpbps): core LNPBP library implementing LNPBPS written in rust
+* [lbx](https://github.com/lnp-bp/lbx): command-line tool for performing basic operations (commitments etc)
+  defined in LNP/BP standards; based on rust-lnpbp library
+* [rust-rgb](https://github.com/rgb-org/rust-rgb): library implementing asset-specific functionaity on top
+  of generic client-validated state paradigm
+* [Kaleidoscope](https://github.com/rgb-org/kaleidoscope): command-line wallet for Bitcoin and RGB protocols
+* [Bifrost](https://github.com/rgb-org/Bifrost): server for storing client-validated data blobs. On hold.
+
+In this repository  you can browse the most recent version under this develop branch, which existed before it was 
+spitted into an independing layered LNP/BP standards. You can also check a history of RGB development in the 
+branches of the current repo:
 * [rgb-v0.4](https://github.com/rgb-org/spec/tree/old-master) branch – original specification created in 2018
   by Alekos Fillini, Giacomo Zucco and contributors
 * [rgb-v0.5](https://github.com/rgb-org/spec/tree/rgb-0.5) branch – finalization on the original specification
   performed in the mid 2019 by Maxim Orlovsky
 
-
-# RGB Protocol Specifications v0.9
+# RGB protocol old specification, v0.9
 1. [OpenSeals](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
    RGB to issue and account issued assets on top of LNP/BP stack.
 2. [LightningNetwork](02-LightningNetwork.md) – implementation of OpenSeals for Lightning Network channels
