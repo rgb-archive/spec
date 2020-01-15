@@ -10,13 +10,13 @@ repository. The current version of the specification is outdated; it will be rep
 required set of the underlying standards is completed.
 
 The present parts of the RGB project under development include:
-* [LNPBPS](https://github.com/lnp-bp/lnpbps): aforementioned set of core standards
-* [rust-lnpbp](https://github.com/lnp-bp/lnpbps): core LNPBP library implementing LNPBPS written in Rust
+* [LNPBPs](https://github.com/lnp-bp/lnpbps): aforementioned set of core standards
+* [rust-lnpbp](https://github.com/lnp-bp/lnpbps): core LNP/BP library implementing LNPBPS written in Rust
 * [lbx](https://github.com/lnp-bp/lbx): command-line tool for performing basic operations (commitments etc)
   defined in LNP/BP standards; based on the rust-lnpbp library
-* [rust-rgb](https://github.com/rgb-org/rust-rgb): library implementing asset-specific functionality on top
+* [rust-rgb](https://github.com/rgb-org/rust-rgb): library implementing wallet- and asset-specific functionality on top
   of generic client-validated state paradigm
-* [Kaleidoscope](https://github.com/rgb-org/kaleidoscope): command-line wallet for Bitcoin and RGB protocols
+* [Kaleidoscope](https://github.com/rgb-org/kaleidoscope): reference command-line wallet for Bitcoin and RGB protocols
 * [Bifrost](https://github.com/rgb-org/Bifrost): server for storing client-validated data blobs. On hold.
 
 In this repository  you can browse the most recent version under this develop branch, which existed before it was 
@@ -28,7 +28,7 @@ branches of the current repo:
   performed in the mid 2019 by Maxim Orlovsky
 
 # RGB protocol old specification, v0.9
-1. [OpenSeals](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
+1. [Seals layer](01-OpenSeals.md) – a framework defining distributed state management mechanics used by
    RGB to issue and account issued assets on top of LNP/BP suite.
 2. [LightningNetwork](02-LightningNetwork.md) – implementation of OpenSeals for Lightning Network channels
 3. [Wire protocol](03-Wire.md) – wire protocol for OpenSeals P2P node communications
